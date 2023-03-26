@@ -17,7 +17,7 @@ The system consist of multiple python scripts and other bash script to command t
 To setup the environment install `requirements.txt` then `torch_requirements.txt`. We prepared an example bash script for setting up the environment `setup_environment.sh`, Please recheck before using it. 
 
 ## MEGR-APT system Architecture 
-![alt text](https://github.com/CoDS-GCS/MEGR-APT-code/blob/main/System_Architecture.png)
+![System Architecture](System_Architecture.png)
 
 ## MEGR-APT RDF Provenance graph construction
 The first step in MEGR-APT is to construct provenance graphs in the RDF graph engine.  
