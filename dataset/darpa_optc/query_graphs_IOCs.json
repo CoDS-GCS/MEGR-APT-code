@@ -1,0 +1,5 @@
+{
+    "Plain_PowerShell_Empire": {"file":["runme","mimikatz"],"ip": ["132.197.158.98"]}, 
+    "Custom_PowerShell_Empire": {"file": ["plink","export","payroll","Transfer1000"], "ip": ["202.6.172.98"]}, 
+    "Malicious_Upgrade": {"file": ["ckfgw","update","myhbyxtpviwx","RTqWaEHv"], "ip": ["53.192.68.50"]}
+}

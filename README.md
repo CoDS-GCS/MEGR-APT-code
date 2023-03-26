@@ -1,1 +1,40 @@
-MEGR-APT
+# MEGR-APT
+MEGR-APT is a scalable APT hunting system to discover suspicious subgraphs matching an attack scenario (query graph) published in Cyber Threat Intelligence (CTI) reports.
+MEGR-APT hunts APTs in a twofold process: (i) memory-efficient suspicious subgraphs extraction, and (ii) fast subgraph matching based on graph neural network (GNN) and attack representation learning. 
+
+## Repository Roadmap
+The input to the system are kernel audit logs in a structured database, Postgres, and attack query graphs in Json format. Inside `technical_reports` folder, We prepared technical report to explain query graph construction in details. Besides, We have a jupyter notebook to follow as an example, all jupyter notebooks are kept in `jupeter_labs` directory
+The system consist of multiple python scripts and other bash script to command them in an interactive way.
+- `/src` directory holds all python scripts.
+- `/bash_src` directory holds all bash scripts.
+- `/technical_reports` directory contains a separate documentation file to explain each script.
+- `/logs` directory is the default location for all generated system logs
+- `/model` directory is the default location for all GNN trained models.
+- `/dataset` directory is the default location for query graphs, IOC files, experiments checkpoints and results and detected subgraphs.      
+- `/jupyter_labs/Demo-MEGR-APT.ipynb` : A demo scenario for two query graphs from DARPA TC3 CADETS host. It includes investigation reports for detected subgraphs.  
+
+## Installation
+To setup the environment install `requirements.txt` then `torch_requirements.txt`. We prepared an example bash script for setting up the environment `setup_environment.sh`, Please recheck before using it. 
+
+## MEGR-APT system Architecture 
+![alt text](./MEGRAPT Detailed System Architecture.png)
+
+## MEGR-APT RDF Provenance graph construction
+The first step in MEGR-APT is to construct provenance graphs in the RDF graph engine.  
+- Use `construct_pg_darpa_optc.py` to query kernel audit logs from a structured database, Postgres, and construct a provenance graph in NetworkX format.
+- Use `construct_rdf_graph_darpa_optc` to construct RDF-Based provenance graphs and store them in RDF graph engine, Stardog.
+
+## MEGR-APT Hunting Pipeline
+MEGR-APT hunting pipeline consist of 4 steps as follows: 
+2. Use `extract_rdf_subgraphs_[dataset].py` to extract suspicious subgraphs based on given attack query graphs' IOCs. 
+3. Run `main.py` to find matches between suspicious subgraphs and attack query graphs using pre-trained GNN models (Has to run the script with the same parameters as the trained model, check the GNN matching documentation for more details).  
+4. Use `invistigate_detected_subgraphs.py` to investigate detected subgraphs and produce a report to human analyst. 
+The full hunting pipeline could be run using `run-megrapt-on-a-query-graph.sh` bash script to finds search for a specific query graph in a provenance graph.
+For evaluation, `run-megrapt-per-host-for-evaluation.sh` could be used ( needs to double confirm the bash script and ground cases in `dataset_config.py` file )  
+
+## MEGR-APT Training Pipeline
+To train a GNN graph matching model for MEGR-APT, you need to configure training/testing details in get_training_testing_sets() function in `dataset_config.py` file. Then take the following training steps:
+1. Use `extract_rdf_subgraphs_[dataset].py` with `--training` argument, to extract a training/testing set of random benign subgraphs.
+2. Use `compute_ged_for_training.py` to compute GED for the training set ( This step run is computationally expensive, takes long time, however it runs in parallel using multiple cores.).  
+3. Run `main.py` with the selected model training parameters as arguments ( See the GNN matching documentation for more details). 
+The training pipeline could be run using `train_megrapt_model.sh` bash script.

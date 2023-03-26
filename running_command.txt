@@ -1,0 +1,71 @@
+DARPA TC 3 
+
+python -u ./src/darpa_tc3/main.py --dataset DARPA_TC3 --dataset-path ./dataset/darpa_tc3/v2/Rdf_QGIOC_D4/ --gnn-operator rgcn --embedding-layers 2 --filters-1 128 --filters-2 92 --filters-3 64 --tensor-neurons 64   --load ./model/final/darpa_tc3_cadets_2rgcn_Lr0.001_Dr0_128-92-64_1000.pt --predict --predict-folder raw/torch_prediction/ --threshold 0.4 --log-similarity
+
+python -u ./src/darpa_tc3/main.py --dataset DARPA_TC3 --dataset-path ./dataset/darpa_tc3/v2/Rdf_QGIOC_D4/ --gnn-operator rgcn --embedding-layers 2 --filters-1 128 --filters-2 92 --filters-3 64 --tensor-neurons 64   --load ./model/final/darpa_tc3_cadets_2rgcn_Lr0.001_Dr0_128-92-64_1000.pt --predict --predict-folder raw/torch_prediction/ --plot-thresholds
+
+
+------------------------------------
+
+DARPA OpTC - Poirot Setting
+
+# python ./src/preprocessing_darpa_optc_prediction_QG.py --output-prx poirot_setting --max-iterations 20
+
+
+# python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/poirot_setting/ --predict-file Plain_PowerShell_Empire_in_attack_SysClient0201_provenance_graph.pt --gnn-operator rgcn --epochs 10000 --embedding-layers 2 --load ./model/simgnn/darpa_optc_v2_rgcn_2layers.pt --predict --threshold 0.4
+
+
+#python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/poirot_setting/ --predict-file Plain_PowerShell_Empire_in_attack_SysClient0201_provenance_graph.pt --gnn-operator rgcn --epochs 10000 --embedding-layers 3 --load ./model/simgnn/darpa_optc_v2_rgcn_3layers.pt --predict --threshold 0.4
+
+
+#python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/poirot_setting/ --predict-folder raw/torch_prediction/ --gnn-operator rgcn --epochs 10000 --embedding-layers 3 --load ./model/simgnn/darpa_optc_v2_rgcn_3layers.pt --predict --threshold 0.4
+
+....................................................................
+
+## Preprocessing Commands
+# python ./src/preprocessing_darpa_optc.py --output-prx improved_rgcn_exp --n-subgraphs 150 > ./logs/darpa_optc/preprocessing_for_training_v2_11_5.txt
+
+# python ./src/preprocessing_darpa_optc.py --output-prx sample_v2 --n-subgraphs 15 > ./logs/darpa_optc/preprocessing_sample_v2_11_5.txt
+
+
+# python ./src/preprocessing_darpa_optc_prediction.py --output-prx improved_rgcn_exp/
+
+# python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/improved_rgcn_exp/ --gnn-operator rgcn --epochs 10000 --load ./model/simgnn/darpa_optc_v2_rgcn_3layers.pt --predict 
+
+## compute GED commands
+# python ./src/DASK_compute_GED_DARPA.py --root-path ./dataset/darpa_optc/sample_v2
+# python ./src/DASK_compute_GED_DARPA.py --root-path ./dataset/darpa_optc/improved_rgcn_exp
+
+## Training Commands
+
+# python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/sample_v2/ --gnn-operator rgcn --epochs 10000 --save ./model/simgnn/darpa_sample_v2_rgcn_3layers.pt > ./logs/darpa_optc/darpa_sample_v2_rgcn_3layers.txt
+
+# python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/improved_rgcn_exp/ --gnn-operator rgcn --epochs 10000 --save ./model/simgnn/darpa_optc_v2_rgcn_3layers.pt > ./logs/darpa_optc/darpa_optc_v2_rgcn_3layers.txt
+
+#python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/improved_rgcn_exp/ --gnn-operator rgcn --histogram  --epochs 10000 --save ./model/simgnn/darpa_optc_v2_rgcn_3layers_hist.pt > ./logs/darpa_optc/darpa_optc_v2_rgcn_3layers_hist.txt
+
+# python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/improved_rgcn_exp/ --gnn-operator rgcn --embedding-layers 2 --epochs 10000 --save ./model/simgnn/darpa_optc_v2_rgcn_2layers.pt > ./logs/darpa_optc/darpa_optc_v2_rgcn_2layers.txt
+
+
+
+
+#DARPA OpTC V1
+
+# python ./src/main.py --dataset ATLAS --gnn-operator rgcn --embedding-layers 2 --histogram  --epochs 10000 --save ./model/simgnn/atlas_rgcn_2layers_10000_hist.pt > ./logs/atlas_rgcn_2layers_10000_hist.txt
+
+# python ./src/main.py --dataset DARPA_OPTC --gnn-operator rgcn --histogram  --epochs 10000 --save ./model/simgnn/darpa_rgcn_3layers_10000_hist.pt > ./logs/darpa_rgcn_3layers_10000_hist.txt
+
+# python ./src/main.py --dataset DARPA_OPTC --gnn-operator rgcn --epochs 10000 --save ./model/simgnn/darpa_rgcn_3layers_10000.pt > ./logs/darpa_optc/darpa_rgcn_3layers_10000.txt
+
+# python ./src/main.py --dataset DARPA_OPTC --gnn-operator rgcn --histogram  --epochs 10 
+
+# python ./src/main.py --dataset DARPA_OPTC --gnn-operator rgcn --histogram --embedding-layers 2 --epochs 10000 --save ./model/simgnn/darpa_rgcn_2layers_hist_10000.pt > ./logs/darpa_optc/darpa_rgcn_2layers_hist_10000.txt
+
+# python ./src/main.py --dataset DARPA_OPTC --dataset-path ./dataset/darpa_optc/sample_100/ --gnn-operator rgcn --epochs 10000 --save ./model/simgnn/darpa_sample_100_10000.pt > ./logs/darpa_optc/darpa_sample_100_10000.txt
+
+
+# python ./src/main.py --dataset DARPA_OPTC --gnn-operator rgcn --histogram  --epochs 10000 --filters-1 128 --filters-2 64 --filters-3 32 --save ./model/simgnn/darpa_rgcn_3layers_10000_hist_32.pt > ./logs/darpa_rgcn_3layers_10000_hist_32.txt
+
+
+
+
