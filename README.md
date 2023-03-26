@@ -21,16 +21,16 @@ To setup the environment install `requirements.txt` then `torch_requirements.txt
 
 ## MEGR-APT RDF Provenance graph construction
 The first step in MEGR-APT is to construct provenance graphs in the RDF graph engine.  
-- Use `construct_pg_darpa_optc.py` to query kernel audit logs from a structured database, Postgres, and construct a provenance graph in NetworkX format.
-- Use `construct_rdf_graph_darpa_optc` to construct RDF-Based provenance graphs and store them in RDF graph engine, Stardog.
+- Use `construct_pg_cadets.py` to query kernel audit logs from a structured database, Postgres, and construct a provenance graph in NetworkX format.
+- Use `construct_rdf_graph_cadets.py` to construct RDF-Based provenance graphs and store them in RDF graph engine, Stardog.
 
 ## MEGR-APT Hunting Pipeline
-MEGR-APT hunting pipeline consist of 4 steps as follows: 
-2. Use `extract_rdf_subgraphs_[dataset].py` to extract suspicious subgraphs based on given attack query graphs' IOCs. 
-3. Run `main.py` to find matches between suspicious subgraphs and attack query graphs using pre-trained GNN models (Has to run the script with the same parameters as the trained model, check the GNN matching documentation for more details).  
-4. Use `invistigate_detected_subgraphs.py` to investigate detected subgraphs and produce a report to human analyst. 
+MEGR-APT hunting pipeline consist of 3 steps as follows: 
+2. Use `extract_rdf_subgraphs_cadets.py` to extract suspicious subgraphs based on given attack query graphs' IOCs. 
+3. Run `main.py` to find matches between suspicious subgraphs and attack query graphs using pre-trained GNN models (Has to run the script with the same parameters as the trained model, check the GNN matching documentation for more details).
 The full hunting pipeline could be run using `run-megrapt-on-a-query-graph.sh` bash script to finds search for a specific query graph in a provenance graph.
-For evaluation, `run-megrapt-per-host-for-evaluation.sh` could be used ( needs to double confirm the bash script and ground cases in `dataset_config.py` file )  
+For evaluation, `run-megrapt-per-host-for-evaluation.sh` could be used ( needs to double confirm the bash script and ground cases in the bash script file. )  
+Use the Demo jupyter notebook to investigate detected subgraphs and produce a report to human analyst. 
 
 ## MEGR-APT Training Pipeline
 To train a GNN graph matching model for MEGR-APT, you need to configure training/testing details in get_training_testing_sets() function in `dataset_config.py` file. Then take the following training steps:
