@@ -2,8 +2,7 @@ import dgl
 import numpy as np
 from heapq import heappush, heappop, heapify, nsmallest
 from copy import deepcopy
-# We use lapjv implementation (https://github.com/src-d/lapjv) to solve assignment problem, because of its scalability
-# Also see https://github.com/berhane/LAP-solvers for benchmarking of LAP solvers
+
 from lapjv import lapjv
 import time
 

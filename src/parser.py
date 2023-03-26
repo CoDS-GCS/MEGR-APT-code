@@ -17,8 +17,8 @@ def parameter_parser():
     parser.add_argument(
         "--dataset",
         nargs="?",
-        default="DARPA_OPTC",
-        help="Dataset name. Default is DARPA_OPTC",
+        default="DARPA_CADETS",
+        help="Dataset name. Default is DARPA_CADETS",
     )
     
     

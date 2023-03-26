@@ -95,12 +95,6 @@ def main():
     GRAPH_IRI = "http://grapt.org/darpa_tc3/trace/attack_linux_3/"
     graph_file = "./dataset/darpa_trace/provenance_graphs/attack_Linux_3_provenance_graph_part1_v2.pt"
     process_a_graph(GRAPH_IRI,graph_file)
-    
-#     for i in range(2,9):
-#         start_time = time.time()
-#         graph_file = './dataset/darpa_trace/provenance_graphs/attack_Linux_3_provenance_graph_part' + str(i)+'_v3.pt'
-#         process_a_graph(GRAPH_IRI,graph_file)
-        
-#     print("Linux 3 has converted to RDF, joining completed")
+
 if __name__ == "__main__":
     main()

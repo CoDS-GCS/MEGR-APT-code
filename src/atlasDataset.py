@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 class ATLASDataset(InMemoryDataset):
     num_features = 7
     num_relations = 14
-    root_file = "/shared_mnt/GnnDeepHunter/"
+    root_file = "../"
     def __init__(self, root,train:bool=True,predict=False,query = False, transform=None, pre_transform=None, pre_filter=None):
         super().__init__(root, transform, pre_transform, pre_filter)  
         self.name = "ATLAS_Dataset"
@@ -43,40 +43,6 @@ class ATLASDataset(InMemoryDataset):
     def processed_file_names(self):
         return ['torch_training_dataset.pt','torch_testing_dataset.pt','nged_matrix.pt','query_graphs_dataset.pt','predict_dataset.pt']
 
-#     def process(self):
-        # Read data into huge `Data` list.
-#         data_path_training = self.raw_path[0]
-#         data_path_training = root_file + "./dataset/atlas/simgnn/hot_encoding/rgcn_exp/torch_training_dataset.pt"
-#         data_list = torch.load(data_path_training)
-#         torch.save(self.collate(data_list), self.processed_paths[0])
-#         data_path_testing = self.raw_path[1]
-#         data_path_testing = root_file + "./dataset/atlas/simgnn/hot_encoding/rgcn_exp/torch_testing_dataset.pt"
-#         data_list = torch.load(data_path_testing)
-#         torch.save(self.collate(data_list), self.processed_paths[1])
-#         nged_path = root_file + "./dataset/atlas/simgnn/hot_encoding/rgcn_exp/nged_matrix.pt"
-#         nged_matrix = torch.load(nged_path)
-#         torch.save(nged_matrix,self.processed_paths[2])
-#         query_path = "./dataset/atlas/simgnn/hot_encoding/predict/exp2/query_graphs_dataset.pt"
-#         query_list = torch.load(query_path)
-#         try:
-#             query_list = torch.load(self.processed_paths[3])
-#             torch.save(self.collate(query_list),self.processed_paths[3])
-#         except:
-#             print("No stored prediction dataset")
-# #         predict_path = "./dataset/atlas/simgnn/hot_encoding/predict/exp2/predict_dataset.pt"
-# #         predict_list = torch.load(predict_path)
-#         try:
-#             predict_list = torch.load(self.processed_paths[4])
-#             torch.save(self.collate(predict_list),self.processed_paths[4])
-#         except:
-#             print("No stored query graphs")
-
-#         if self.pre_filter is not None:
-#             data_list = [data for data in data_list if self.pre_filter(data)]
-
-#         if self.pre_transform is not None:
-#             data_list = [self.pre_transform(data) for data in data_list]
-    
     def annotate(self,predict_dataset):
         torch.save(self.collate(predict_dataset),self.processed_paths[4])
     
@@ -90,7 +56,6 @@ class ATLASDataset(InMemoryDataset):
             data.num_nodes = query_graphs[g].number_of_nodes()
             data.nlabel = query_graphs[g].ndata['label']
             data.elabel = query_graphs[g].edata['edge_label']
-#             data.x = query_graphs[g].ndata['label']
             query_data_list.append(data)
             ids += 1
         data_file = root_file + "./dataset/atlas/simgnn/hot_encoding/rgcn_exp/predict/query_graphs_dataset.pt"  

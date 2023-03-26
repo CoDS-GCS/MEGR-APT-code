@@ -630,8 +630,6 @@ class MEGRAPTTrainer(object):
             if self.args.log_similarity:    
                 checkpoint(similarity_matrix,(self.root_file+"predict/"+self.args.load.split("/")[-1].replace(".pt","") + "_similarity/similarity_matrix_"+self.predict_file))
             Highest_index = np.argmax(similarity_matrix)
-
-#             print("\nHighest similarity: ", round(np.amax(similarity_matrix),4),"in iteration number",self.predict_graphs[Highest_index].iteration)
             print("\nHighest similarity: ", round(np.amax(similarity_matrix),4))
             print("The highest similarity subgraph is: ",self.predict_graphs[Highest_index])
 
@@ -639,9 +637,6 @@ class MEGRAPTTrainer(object):
             if raised_alarms.size == 0:
                 print("\nNone of subgraphs passed the threshold")
             else:
-#                 alarm_iteration = [alarm.iteration for alarm in self.predict_graphs[raised_alarms]]
-#                 print("\nEarliest Iteration passed the threshold is:",np.min(alarm_iteration))
-#                 print("Earliest Score passed the threshold is",similarity_matrix[0][raised_alarms[np.argmin(alarm_iteration)]])
                 print("Number of subgraphs passed the threshold:", raised_alarms.size)
         
         if raised_alarms.size == 0:
@@ -730,12 +725,6 @@ class MEGRAPTTrainer(object):
         self.prec_at_20 = np.mean(prec_at_20_list).item()
         self.model_error = np.mean(scores).item()
         self.mem_evaluate = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - self.mem_loading_dataset - self.current_mem
-        # if self.args.save:
-        #     score_file = self.args.dataset_path + self.args.save.split("/")[-1].replace(".pt","_") + "scores.pt"
-        #     torch.save(scores,score_file)
-        # elif self.args.load:
-        #     score_file = self.args.dataset_path + self.args.load.split("/")[-1].replace(".pt","_") + "scores.pt"
-        #     torch.save(scores,score_file)
         self.print_evaluation()
         
         

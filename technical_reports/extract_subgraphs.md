@@ -42,9 +42,9 @@ def get_ground_cases(dataset, similar_attack=False):
 ```angular2html
 python  ./src/darpa_tc3/extract_rdf_subgraphs_cadets.py --dataset darpa_cadets --output-prx TEST_DEV --parallel 
 ```
-2. To extract suspicious subgraphs for the query graph `Plain_PowerShell_Empire` in the provenance graph `attack_SysClient0201`
+2. To extract suspicious subgraphs for the query graph `BSD_1` in the provenance graph `attack_BSD_1`
 ```angular2html
-python  ./src/darpa_tc3/extract_rdf_subgraphs_cadets.py --dataset darpa_cadets  --output-prx TEST_DEV --parallel --test-a-qg Plain_PowerShell_Empire --pg-name attack_SysClient0201
+python  ./src/darpa_tc3/extract_rdf_subgraphs_cadets.py --dataset darpa_cadets  --output-prx TEST_DEV --parallel --test-a-qg BSD_1 --pg-name attack_BSD_1
 ```
 3. To generate training set by extracting benign subgraphs:
 ```angular2html

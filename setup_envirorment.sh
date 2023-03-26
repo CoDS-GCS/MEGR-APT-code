@@ -15,4 +15,4 @@ pip3 install jupyterlab
 pip3 install --upgrade jupyter_core jupyter_client
 python -m ipykernel install --user --name=envmegrapt
 
-echo "setup stardog"
+

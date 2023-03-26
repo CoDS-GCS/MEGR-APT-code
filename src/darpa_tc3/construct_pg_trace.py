@@ -17,9 +17,14 @@ def ensure_dir(file_path):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-timezone = pytz.timezone("America/Nipigon")
-db_url = 'postgresql+psycopg2://postgres:$Darpa!$@localhost/darpa_trace'
 
+username = ""
+password = ""
+dataset = "darpa_trace"
+db_url = 'postgresql+psycopg2://' + username + ':' + password + '@localhost/' + dataset
+
+#DARPA timezone
+timezone = pytz.timezone("America/Nipigon")
 query_events_objects = """
 SELECT "subject" as subject, "predicate_object" as object, "uuid" as event, "type" ,"time_stamp_nanos" as timestamp
 FROM public."Event" 

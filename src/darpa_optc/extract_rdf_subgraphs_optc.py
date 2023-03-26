@@ -984,36 +984,6 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     return
 
 
-# def process_one_graph_training(GRAPH_IRI, sparql_queries, query_graphs, n_subgraphs=args.n_subgraphs):
-#     one_graph_time = time.time()
-#     current_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-#     GRAPH_NAME = GRAPH_IRI.split("/")[-2]
-#     print("\nprocessing ", GRAPH_NAME)
-#     graph_sparql_queries = copy.deepcopy(sparql_queries)
-#     for sparql_name, sparql_query in graph_sparql_queries.items():
-#         graph_sparql_queries[sparql_name] = sparql_query.replace("<GRAPH_NAME>", GRAPH_NAME).replace("<MAX_EDGES>",
-#                                                                                                      str(args.max_edges + 10))
-#     for query_graph_name in query_graphs:
-#         query_pattern = '\"' + query_graph_name + '\"'
-#         temp_graph_sparql_queries = copy.deepcopy(graph_sparql_queries)
-#         temp_graph_sparql_queries["Label_Suspicious_Nodes"] = temp_graph_sparql_queries[
-#             "Label_Suspicious_Nodes"].replace("<Query>", query_pattern)
-#         print("Labelling", query_graph_name)
-#         label_candidate_nodes_rdf(temp_graph_sparql_queries, query_graph_name)
-#     benignSubGraphs = Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs)
-#     checkpoint(benignSubGraphs,("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/nx_benignSubGraphs_training_" + GRAPH_NAME + ".pt"))
-#
-#     print("Encoding the random benign subgraphs")
-#     benignSubGraphs_dgl = [encode_for_RGCN(g) for g in benignSubGraphs]
-#     benignSubGraphs = None
-#     # clear suspicious labels
-#     conn.update(graph_sparql_queries['Delete_Suspicious_Labels'])
-#     print("\nprocessed", GRAPH_NAME, " in: --- %s seconds ---" % (time.time() - one_graph_time))
-#     return benignSubGraphs_dgl
-
-
-
-
 def main():
     start_running_time = time.time()
     random.seed(123)
@@ -1042,13 +1012,6 @@ def main():
         print("Extracting suspicious subgraphs for",args.test_a_qg,"in PG:",args.pg_name)
         GRAPH_IRI = "http://grapt.org/darpa_optc/" + args.pg_name +"/"
         process_one_graph(GRAPH_IRI, sparql_queries, args.test_a_qg)
-#     else:
-#         print("processing Provenance Graphs prediction samples")
-#         query_graph_name = args.QG_name
-#         GRAPH_IRI = "http://grapt.org/darpa_optc/" + args.PG_name + "/"
-#         process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
-#         if args.parallel:
-#             release_memory(client) 
 
     print("---Total Running Time for", args.dataset, "host is: %s seconds ---" % (time.time() - start_running_time))
 

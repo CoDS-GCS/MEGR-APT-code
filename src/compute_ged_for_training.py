@@ -64,9 +64,6 @@ def main():
                 start_s_time = time.time()
                 distance_beam,distance_bipartite,distance_hausdorff,distance = None,None,None,None
                 g2 = graph_data[j]
-#                 distance_beam = graph_edit_distance(g1, g2, algorithm='beam', max_beam_size=2)
-#                 distance_bipartite = graph_edit_distance(g1, g2, algorithm='bipartite')
-#                 distance_hausdorff = graph_edit_distance(g1, g2, algorithm='hausdorff')
                 try:
                     distance_beam  = graph_edit_distance(g1, g2, algorithm='beam', max_beam_size=2)
                 except: 
@@ -98,9 +95,6 @@ def main():
             for j in range(n_training):
                 start_s_time = time.time()             
                 g2 = graph_data[j]
-#                 distance_beam = graph_edit_distance(g1, g2, algorithm='beam', max_beam_size=2)
-#                 distance_bipartite = graph_edit_distance(g1, g2, algorithm='bipartite')
-#                 distance_hausdorff = graph_edit_distance(g1, g2, algorithm='hausdorff')
                 try:
                     distance_beam = graph_edit_distance(g1, g2, algorithm='beam', max_beam_size=2)
                 except: 

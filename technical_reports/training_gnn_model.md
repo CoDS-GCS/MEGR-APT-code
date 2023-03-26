@@ -30,7 +30,6 @@ python ./src/compute_ged_for_training.py -root-path ./dataset/[DATASET_NAME]/exp
 Use the main GNN model script to train a model with selected parameters.
 
 - Use the defaults model parameters, set a unique model name.
-    - The default parameter are: 2 layer of RGCN network, Output vector size is 64, Learning Rate is 0.001, Dropout 0 and number of epochs is 1000
 ```angular2html
 python ./src/main.py --dataset DARPA_CADETS --dataset-path ./dataset/[DATASET_NAME]/experiments/[OUTPUT_PRX]/ --save ./model/[DATASET_NAME]/[OUTPUT_PRX]/[MODEL_NAME].pt --plot
 ```

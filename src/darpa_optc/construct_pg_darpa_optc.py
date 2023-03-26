@@ -13,8 +13,10 @@ def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
-
-db_url = 'postgresql+psycopg2://postgres:$Darpa!$@localhost/darpa_optc'
+username = ""
+password = ""
+dataset = "darpa_optc"
+db_url = 'postgresql+psycopg2://' + username + ':' + password + '@localhost/' + dataset
 
 n_query = """
 SELECT COUNT(*)
