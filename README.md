@@ -25,9 +25,9 @@ The first step in MEGR-APT is to construct provenance graphs in the RDF graph en
 - Use `construct_rdf_graph_cadets.py` to construct RDF-Based provenance graphs and store them in RDF graph engine, Stardog.
 
 ## MEGR-APT Hunting Pipeline
-MEGR-APT hunting pipeline consist of 3 steps as follows: 
-2. Use `extract_rdf_subgraphs_cadets.py` to extract suspicious subgraphs based on given attack query graphs' IOCs. 
-3. Run `main.py` to find matches between suspicious subgraphs and attack query graphs using pre-trained GNN models (Has to run the script with the same parameters as the trained model, check the GNN matching documentation for more details).
+MEGR-APT hunting pipeline consist of 2 steps as follows: 
+1. Use `extract_rdf_subgraphs_cadets.py` to extract suspicious subgraphs based on given attack query graphs' IOCs. 
+2. Run `main.py` to find matches between suspicious subgraphs and attack query graphs using pre-trained GNN models (Has to run the script with the same parameters as the trained model, check the GNN matching documentation for more details).
 The full hunting pipeline could be run using `run-megrapt-on-a-query-graph.sh` bash script to finds search for a specific query graph in a provenance graph.
 For evaluation, `run-megrapt-per-host-for-evaluation.sh` could be used.
 Use the `Investigation_Reports.ipynb` jupyter notebook to investigate detected subgraphs and produce a report to human analyst. 
