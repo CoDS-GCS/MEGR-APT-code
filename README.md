@@ -11,7 +11,7 @@ The system consist of multiple python scripts and other bash script to command t
 - `/logs` directory is the default location for all generated system logs
 - `/model` directory is the default location for all GNN trained models.
 - `/dataset` directory is the default location for query graphs, IOC files, experiments checkpoints and results and detected subgraphs.      
-- `/jupyter_labs/Demo-MEGR-APT.ipynb` : A demo scenario for two query graphs from DARPA TC3 CADETS host. It includes investigation reports for detected subgraphs.  
+- `Investigation_Reports.ipynb` : Scripts to generate investigation reportsfor detected subgraphs. the notebook includes a demo scenario for two query graphs from DARPA TC3 CADETS host. 
 
 ## Installation
 To setup the environment install `requirements.txt` then `torch_requirements.txt`. We prepared an example bash script for setting up the environment `setup_environment.sh`, Please recheck before using it. 
