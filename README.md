@@ -3,15 +3,15 @@ MEGR-APT is a scalable APT hunting system to discover suspicious subgraphs match
 MEGR-APT hunts APTs in a twofold process: (i) memory-efficient suspicious subgraphs extraction, and (ii) fast subgraph matching based on graph neural network (GNN) and attack representation learning. 
 
 ## Repository Roadmap
-The input to the system are kernel audit logs in a structured database, Postgres, and attack query graphs in Json format. Inside `technical_reports` folder, We prepared technical report to explain query graph construction in details. Besides, We have a jupyter notebook to follow as an example, all jupyter notebooks are kept in `jupeter_labs` directory
+The input to the system are kernel audit logs in a structured database, Postgres, and attack query graphs in Json format.
 The system consist of multiple python scripts and other bash script to command them in an interactive way.
 - `/src` directory holds all python scripts.
 - `/bash_src` directory holds all bash scripts.
-- `/technical_reports` directory contains a separate documentation file to explain each script.
+- `/technical_reports` directory contains a separate documentation file to explain scripts.
 - `/logs` directory is the default location for all generated system logs
 - `/model` directory is the default location for all GNN trained models.
 - `/dataset` directory is the default location for query graphs, IOC files, experiments checkpoints and results and detected subgraphs.      
-- `Investigation_Reports.ipynb` : Scripts to generate investigation reportsfor detected subgraphs. the notebook includes a demo scenario for two query graphs from DARPA TC3 CADETS host. 
+- `Investigation_Reports.ipynb` : A notebook with scripts to generate investigation reportsfor detected subgraphs. the notebook includes a demo scenario for two query graphs from DARPA TC3 CADETS host. 
 
 ## Installation
 To setup the environment install `requirements.txt` then `torch_requirements.txt`. We prepared an example bash script for setting up the environment `setup_environment.sh`, Please recheck before using it. 
@@ -29,8 +29,8 @@ MEGR-APT hunting pipeline consist of 3 steps as follows:
 2. Use `extract_rdf_subgraphs_cadets.py` to extract suspicious subgraphs based on given attack query graphs' IOCs. 
 3. Run `main.py` to find matches between suspicious subgraphs and attack query graphs using pre-trained GNN models (Has to run the script with the same parameters as the trained model, check the GNN matching documentation for more details).
 The full hunting pipeline could be run using `run-megrapt-on-a-query-graph.sh` bash script to finds search for a specific query graph in a provenance graph.
-For evaluation, `run-megrapt-per-host-for-evaluation.sh` could be used ( needs to double confirm the bash script and ground cases in the bash script file. )  
-Use the Demo jupyter notebook to investigate detected subgraphs and produce a report to human analyst. 
+For evaluation, `run-megrapt-per-host-for-evaluation.sh` could be used.
+Use the `Investigation_Reports.ipynb` jupyter notebook to investigate detected subgraphs and produce a report to human analyst. 
 
 ## MEGR-APT Training Pipeline
 To train a GNN graph matching model for MEGR-APT, you need to configure training/testing details in get_training_testing_sets() function in `dataset_config.py` file. Then take the following training steps:
