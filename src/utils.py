@@ -50,7 +50,7 @@ def draw_metrics_over_threshold(args):
                          "Custom_PowerShell_Empire_in_benign_SysClient0501.pt",
                          "Custom_PowerShell_Empire_in_benign_SysClient0201.pt"]
     #               "Custom_PowerShell_Empire_in_attack_SysClient0358_provenance_graph.pt" is challenging
-    elif args.dataset == "DARPA_TC3":
+    elif args.dataset == "DARPA_CADETS":
         predict_cases = ["BSD_4_in_benign_BSD.pt", "BSD_3_in_benign_BSD.pt", "BSD_4_in_attack_BSD_3_4.pt",
                          "BSD_3_in_attack_BSD_3_4.pt", "BSD_2_in_attack_BSD_2.pt", "BSD_1_in_attack_BSD_1.pt",
                          "BSD_1_in_benign_BSD.pt", "BSD_2_in_benign_BSD.pt"]

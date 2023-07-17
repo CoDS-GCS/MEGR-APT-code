@@ -22,11 +22,14 @@ from dask.distributed import Client, LocalCluster
 import dask.bag as db
 import stardog
 import os, psutil
-
 process = psutil.Process(os.getpid())
 import multiprocessing
 import gc
 import ctypes
+import sys
+current_dir = os.getcwd()
+sys.path.append(current_dir+"/src")
+from dataset_config import get_stardog_cred
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
@@ -44,6 +47,7 @@ parser.add_argument('--dataset', nargs="?", help='Dataset name', default="darpa_
 parser.add_argument('--training', help='Prepare training set', action="store_true", default=False)
 parser.add_argument('--map-to-theia', help='Map edges to THEIA types', action="store_true", default=False)
 parser.add_argument('--n-subgraphs', type=int, help='Number of Subgraph', default=None)
+parser.add_argument('--traverse-without-time', help='Consider timestamp while traversing', action="store_false",default=True)
 parser.add_argument("--test-a-qg",type=str,default=None,help="The name of the tested query graph.")
 parser.add_argument("--pg-name",type=str,default=None,help="The nae of the tested provenance graph.")
 parser.add_argument('--database-name', type=str, help='Stardog database name', default='tc3-trace')
@@ -73,12 +77,8 @@ def load_checkpoint(file_path):
     return data
 
 
-connection_details = {
-    'endpoint': 'http://localhost:5820',
-    'username': '',
-    'password': ''
-}
-conn = stardog.Connection(args.database_name, **connection_details)
+database_name, connection_details = get_stardog_cred(args.database_name)
+conn = stardog.Connection(database_name, **connection_details)
 
 
 def explore_graph(g):
@@ -154,7 +154,7 @@ sparql_queries = {'Query_Suspicious_IP': """
     } 
 
 """,
-                  'Extract_Suspicious_Subgraph_v2': """
+                  'Extract_Suspicious_Subgraph_NoTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/trace/<GRAPH_NAME>/> 
     SELECT  DISTINCT ?subject ?predicate ?object {
         {
@@ -264,7 +264,257 @@ sparql_queries = {'Query_Suspicious_IP': """
         }  
     } LIMIT <MAX_EDGES> 
 """,
-                  'Extract_Suspicious_Subgraph': """
+                  'Extract_Suspicious_Subgraph_NoTime_v2': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/trace/<GRAPH_NAME>/> 
+    PREFIX event: <http://grapt.org/darpa_tc3/trace/<GRAPH_NAME>/event/> 
+    SELECT  DISTINCT ?subject ?predicate ?object {
+        {
+            # 1- forward
+            SELECT DISTINCT ?subject ?predicate ?object 
+            WHERE {
+                ?subject ?predicate ?object .
+                ?subject <GRAPH_NAME>:uuid ?IOC_node .
+                ?object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+                FILTER strstarts(str(?predicate),str(event:)) .
+            }   LIMIT <MAX_EDGES>  
+        } 
+        UNION 
+        {
+            #2- backward
+            SELECT DISTINCT ?subject ?predicate ?object 
+            WHERE {
+                ?subject ?predicate ?object .
+                ?object <GRAPH_NAME>:uuid ?IOC_node .
+                ?subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+                FILTER strstarts(str(?predicate),str(event:)) .
+            } LIMIT <MAX_EDGES>  
+        } 
+        UNION 
+        {
+            # 3-a forward from all first neighbours  
+            SELECT 
+            (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
+            WHERE {
+                ?first_object ?next_predicate ?next_object .
+                {
+                    SELECT DISTINCT ?first_object 
+                    WHERE {
+                        ?first_subject ?first_predicate ?first_object .
+                        ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+                        ?first_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                        FILTER (?candidate IN ("process", <Query>)).
+                        FILTER strstarts(str(?first_predicate),str(event:)) .
+                    }
+                }
+                ?next_object rdf:type|<GRAPH_NAME>:suspicious ?candidate2 .
+                FILTER (?candidate2 IN ("process", <Query>)).
+                FILTER strstarts(str(?next_predicate),str(event:)) .
+            }    LIMIT <MAX_EDGES> 
+        } 
+        UNION {
+             # 3-b forward from all first neighbours  
+            SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)  
+            WHERE {
+                ?first_subject ?next_predicate ?next_object
+                { 
+                    SELECT DISTINCT ?first_subject
+                    WHERE {
+                        ?first_subject ?first_predicate ?first_object .
+                        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                        ?first_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                        FILTER (?candidate IN ("process", <Query>)).
+                        FILTER strstarts(str(?first_predicate),str(event:)) .
+                    }
+                }
+                ?next_object rdf:type|<GRAPH_NAME>:suspicious ?candidate2 .
+                FILTER (?candidate2 IN ("process", <Query>)).
+                FILTER strstarts(str(?next_predicate),str(event:)) .
+            } LIMIT <MAX_EDGES> 
+        } 
+        UNION {
+            #4-a Backward from all first neighbours  
+            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) 
+            WHERE {
+                ?next_subject ?next_predicate ?first_object
+                {
+                    SELECT DISTINCT ?first_object
+                    WHERE{
+                        ?first_subject ?first_predicate ?first_object .
+                        ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+                        ?first_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                        FILTER (?candidate IN ("process", <Query>)).
+                        FILTER strstarts(str(?first_predicate),str(event:)) .
+                    }
+                }
+                ?next_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate2 .
+                FILTER (?candidate2 IN ("process", <Query>)).
+                FILTER strstarts(str(?next_predicate),str(event:)) .
+            }    LIMIT <MAX_EDGES>  
+        } 
+        UNION {
+        #     #4-b Backward from all first neighbours  
+            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) 
+            WHERE {
+                ?next_subject ?next_predicate ?first_subject .
+                {
+                    SELECT DISTINCT  ?first_subject  
+                    WHERE {
+                        ?first_subject ?first_predicate ?first_object .
+                        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                        ?first_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                        FILTER (?candidate IN ("process", <Query>)).
+                        FILTER strstarts(str(?first_predicate),str(event:)) .
+                    }
+                }
+                ?next_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate2 .
+                FILTER (?candidate2 IN ("process", <Query>)).
+                FILTER strstarts(str(?next_predicate),str(event:)) .
+            }   LIMIT <MAX_EDGES>   
+        }  
+    } LIMIT <MAX_EDGES> 
+""",
+                  'Extract_Suspicious_Subgraph_NoTime_v3': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/trace/<GRAPH_NAME>/>
+
+    SELECT DISTINCT * {
+        {
+            # 1- forward
+            SELECT DISTINCT ?subject ?predicate ?object 
+            WHERE {
+                ?subject ?predicate ?object .
+                ?subject <GRAPH_NAME>:uuid ?IOC_node .
+                {?object rdf:type "process"} UNION {?object <GRAPH_NAME>:suspicious <Query> } .
+            }  LIMIT <MAX_EDGES>
+        } UNION {
+            #2- backward
+            SELECT DISTINCT ?subject ?predicate ?object 
+            WHERE {
+                ?subject ?predicate ?object .
+                ?object <GRAPH_NAME>:uuid ?IOC_node .
+                {?subject rdf:type "process"} UNION {?subject <GRAPH_NAME>:suspicious <Query>} .
+            } LIMIT <MAX_EDGES>
+        } UNION {
+            #3-a forward from all first neighbours  
+            SELECT DISTINCT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?first_object ?next_predicate ?next_object . 
+                ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+                {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+                {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+            }   LIMIT <MAX_EDGES>
+        } UNION {
+            #3-b forward from all first neighbours  
+            SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?first_subject ?next_predicate ?next_object . 
+                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+                {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+            }   LIMIT <MAX_EDGES>
+        } UNION {
+            #4-a Backward from all first neighbours  
+            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) 
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?next_subject ?next_predicate ?first_object .
+                ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+                {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+                {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+            }   LIMIT <MAX_EDGES>
+        } UNION {
+            #4-b Backward from all first neighbours  
+            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object)
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?next_subject ?next_predicate ?first_subject .
+                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+                {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+            }   LIMIT <MAX_EDGES>
+        }  
+    }   
+    LIMIT <MAX_EDGES>
+""",
+                  'Extract_Suspicious_Subgraph_withTime_v4':"""
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/trace/<GRAPH_NAME>/>
+    SELECT DISTINCT * {
+        {
+            # 1- forward
+            SELECT DISTINCT ?subject ?predicate ?object ?timestamp
+            WHERE {
+                << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
+                ?subject <GRAPH_NAME>:uuid ?IOC_node .
+                ?object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+                
+            }
+        } UNION {
+            #2- backward
+            SELECT DISTINCT ?subject ?predicate ?object ?timestamp
+            WHERE {
+                << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
+                ?object <GRAPH_NAME>:uuid ?IOC_node .
+                ?subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+            }
+        } 
+        UNION {
+            #3-a forward from all first neighbours  
+            SELECT DISTINCT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) ?timestamp
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                << ?first_object ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp . 
+                ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+                ?first_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+                ?next_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+                
+            }    
+        } UNION {
+            #3-b forward from all first neighbours  
+            SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)  ?timestamp
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                <<?first_subject ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp . 
+                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                ?first_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+                ?next_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+            }    
+        } UNION {
+            #4-a Backward from all first neighbours  
+            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) ?timestamp 
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                << ?next_subject ?next_predicate ?first_object >> <GRAPH_NAME>:timestamp ?timestamp .
+                ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+                ?next_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+                ?first_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+            }    
+        } UNION {
+            #4-b Backward from all first neighbours  
+            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) ?timestamp
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                << ?next_subject ?next_predicate ?first_subject >> <GRAPH_NAME>:timestamp ?timestamp .
+                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                ?next_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+                ?first_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
+                FILTER (?candidate IN ("process", <Query>)).
+            }    
+        }  
+    }   LIMIT <MAX_EDGES> 
+                  """,
+                  'Extract_Suspicious_Subgraph_withTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/trace/<GRAPH_NAME>/>
 
     SELECT DISTINCT * {
@@ -582,21 +832,35 @@ def Traverse_rdf(params):
         try:
             csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_v2'], content_type='text/csv',
                                       bindings={'IOC_node': node}, limit=(rand_limit))
-        except:
-            print("Error in Querying subgraph with seed", node)
-            return None
+        except Exception as e:
+            print("Error in Querying subgraph with seed", node, e)
+            return None, None
     else:
-        try:
-            csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_v2'], content_type='text/csv',
-                                      bindings={'IOC_node': node}, limit=(args.max_edges + 10))
-        except:
-            print("Error in Querying subgraph with seed", node)
-            return None
+        if args.traverse_without_time:
+            try:
+                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'], content_type='text/csv',
+                                          bindings={'IOC_node': node}, limit=(args.max_edges + 10))
+            except Exception as e:
+                print("Error in Querying subgraph with seed", node, e)
+                return None, None
+        else:
+            try:
+                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime_v4'], content_type='text/csv',
+                                          bindings={'IOC_node': node}, limit=(args.max_edges + 10))
+            except Exception as e:
+                print("Error in Querying subgraph with seed", node, e)
+                return None, None
     subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
-
+    if len(subgraphTriples) > args.max_edges:
+        print("Subgraph not within range", len(subgraphTriples), "edges")
+        return None, None
     # Convert subgraphTriples to networkx "subgraph"
     # Parse Triples
     try:
+        if not args.traverse_without_time:
+            subgraphTriples['timestamp'] = subgraphTriples['timestamp'] / 1000
+            subgraphTriples['timestamp'] = subgraphTriples['timestamp'].apply(lambda x: '%.f' % x)
+            subgraphTriples = subgraphTriples.drop_duplicates()
         subgraphTriples['subject_type'] = subgraphTriples['subject'].str.split('/').str[-2]
         subgraphTriples['subject_uuid'] = subgraphTriples['subject'].str.split('/').str[-1]
         subgraphTriples['type'] = subgraphTriples['predicate'].str.split('/').str[-1]
@@ -604,15 +868,24 @@ def Traverse_rdf(params):
         subgraphTriples['object_uuid'] = subgraphTriples['object'].str.split('/').str[-1]
     except:
         print("Not standard format for", node)
-        return None
+        return None, None
     # Construct Graph from Edges
-    subgraph = nx.from_pandas_edgelist(
-        subgraphTriples,
-        source="subject_uuid",
-        target="object_uuid",
-        edge_attr=["type"],
-        create_using=nx.MultiDiGraph()
-    )
+    if args.traverse_without_time:
+        subgraph = nx.from_pandas_edgelist(
+            subgraphTriples,
+            source="subject_uuid",
+            target="object_uuid",
+            edge_attr=["type"],
+            create_using=nx.MultiDiGraph()
+        )
+    else:
+        subgraph = nx.from_pandas_edgelist(
+            subgraphTriples,
+            source="subject_uuid",
+            target="object_uuid",
+            edge_attr=["type","timestamp"],
+            create_using=nx.MultiDiGraph()
+        )
     nodes_df_s = pd.DataFrame()
     nodes_df_o = pd.DataFrame()
     nodes_df_s[["uuid", "type"]] = subgraphTriples[["subject_uuid", "subject_type"]]
@@ -654,9 +927,9 @@ def Traverse_rdf(params):
             attributes_df[row['uuid']] = {'type': 'memory'}
     nx.set_node_attributes(subgraph, attributes_df)
     attributes_df, nodes_df, temp_df = None, None, None
-    if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > args.max_nodes or subgraph.number_of_edges() > args.max_edges:
-        # print("Subgraph not within range")
-        return None
+    if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > args.max_nodes:
+        print("Subgraph not within range", subgraph.number_of_nodes(),"nodes")
+        return None, None
     print("Traversed Node in ", time.time() - traverse_time, "seconds")
     return ioc,subgraph
 
@@ -667,7 +940,11 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
     suspGraphs = []
     # suspGraphs_iterations = {}
     considered_per_ioc = {}
+    represented_nodes_per_ioc = {}
+    represented_ioc = set()
     matched_ioc_mask = copy.deepcopy(suspicious_nodes)
+    for ioc in matched_ioc_mask:
+        represented_nodes_per_ioc[ioc] = 0   
     for ioc in matched_ioc_mask:
         considered_per_ioc[ioc] = 0
     if args.parallel:
@@ -705,10 +982,14 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
             if node_id in all_suspicious_nodes:
                 subgraph.nodes[node_id]["candidate"] = True
                 subgraph.nodes[node_id]["ioc"] = revert_suspicious_nodes[node_id]
+                represented_ioc.add(revert_suspicious_nodes[node_id])
+                represented_nodes_per_ioc[revert_suspicious_nodes[node_id]] += 1                 
     suspicious_nodes, all_suspicious_nodes, revert_suspicious_nodes = None, None, None
 
     print("Number of subgraphs:", len(suspGraphs))
     print("Number of subgraph per IOC:\n", considered_per_ioc)
+    print("Total extracted subgraphs represent",len(represented_ioc),"IOCs out of",len(matched_ioc_mask.keys()))
+    print("Number of represented nodes per IOC in all extracted subgraphs:\n",represented_nodes_per_ioc)    
     if len(suspGraphs) > 0:
         print("Average number of nodes in subgraphs:",
               round(mean([supgraph.number_of_nodes() for supgraph in suspGraphs])))

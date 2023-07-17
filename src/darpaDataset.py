@@ -41,11 +41,9 @@ class DARPADataset(InMemoryDataset):
             path = self.processed_paths[3]
             self.data, self.slices = torch.load(path)  
         elif predict:
-            path = self.root + "/processed/predict_dataset/" + file_name
-            try:
-                self.data, self.slices = torch.load(path)  
-            except:
-                self.process()
+            file_path = self.root + "/processed/predict_dataset/" + file_name
+            self.process()
+            self.data, self.slices = torch.load(file_path) 
         else:
             path = self.processed_paths[0] if train else self.processed_paths[1]
             self.data, self.slices = torch.load(path)

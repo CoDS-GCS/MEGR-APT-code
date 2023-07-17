@@ -13,7 +13,7 @@ def main():
     if args.plot_thresholds:
         draw_metrics_over_threshold(args)
         exit()
-    trainer = KGAptTrainer(args)
+    trainer = MEGRAPTTrainer(args)
 #    trainer = trainer.to(device)
         
     if args.measure_time:

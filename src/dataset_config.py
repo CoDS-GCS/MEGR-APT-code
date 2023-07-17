@@ -23,7 +23,7 @@ def get_dataset_nodes_and_edges(dataset):
         edge_types = ['RENAME', 'READ', 'DELETE', 'CREATE', 'OPEN', 'MESSAGE', 'COMMAND', 'WRITE', 'TERMINATE',
                       'MODIFY']
     elif dataset == "darpa_cadets":
-        node_types = ['PROCESS', 'FILE', 'FLOW', 'MEMORY']
+        node_types = ['PROCESS', 'FILE', 'FLOW', 'PIPE']
         edge_types = ['ACCEPT', 'ADD_OBJECT_ATTRIBUTE', 'BIND', 'CHANGE_PRINCIPAL', 'CLOSE', 'CONNECT', 'CREATE_OBJECT',
                       'EXECUTE', 'EXIT', 'FCNTL', 'FLOWS_TO', 'FORK', 'LINK', 'LOGIN', 'LSEEK', 'MMAP',
                       'MODIFY_FILE_ATTRIBUTES', 'MODIFY_PROCESS', 'MPROTECT', 'OPEN', 'OTHER', 'READ', 'RECVFROM',

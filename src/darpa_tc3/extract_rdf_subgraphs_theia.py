@@ -23,11 +23,14 @@ import dask.bag as db
 import stardog
 import os, psutil
 import multiprocessing
-
 process = psutil.Process(os.getpid())
 import gc
 import ctypes
 import math
+import sys
+current_dir = os.getcwd()
+sys.path.append(current_dir+"/src")
+from dataset_config import get_stardog_cred
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
@@ -74,13 +77,9 @@ def load_checkpoint(file_path):
     return data
 
 
-connection_details = {
-    'endpoint': 'http://localhost:5820',
-    'username': '',
-    'password': ''
-}
 
-conn = stardog.Connection(args.database_name, **connection_details)
+database_name, connection_details = get_stardog_cred(args.database_name)
+conn = stardog.Connection(database_name, **connection_details)
 
 
 def explore_graph(g):
@@ -145,7 +144,7 @@ sparql_queries = {'Query_Suspicious_IP': """
     } 
 
 """,
-                  'Extract_Suspicious_Subgraph_v2': """
+                  'Extract_Suspicious_Subgraph_NoTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
     SELECT  DISTINCT ?subject ?predicate ?object {
         {
@@ -255,7 +254,7 @@ sparql_queries = {'Query_Suspicious_IP': """
         }  
     } LIMIT <MAX_EDGES> 
 """,
-                  'Extract_Suspicious_Subgraph': """
+                  'Extract_Suspicious_Subgraph_withTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
 
     SELECT DISTINCT * {
@@ -319,7 +318,7 @@ sparql_queries = {'Query_Suspicious_IP': """
     }   
     LIMIT <MAX_EDGES>
 """,
-                  'Extract_Benign_Subgraph_v2': """
+                  'Extract_Benign_Subgraph_NoTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
     SELECT  DISTINCT ?subject ?predicate ?object {
         {
@@ -419,7 +418,7 @@ sparql_queries = {'Query_Suspicious_IP': """
     }
     LIMIT <MAX_EDGES>
 """,
-                  'Extract_Benign_Subgraph': """
+                  'Extract_Benign_Subgraph_withTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
 
     SELECT DISTINCT * {
@@ -573,28 +572,31 @@ def Traverse_rdf(params):
     if args.training:
         rand_limit = random.randint((args.max_edges / 10), args.max_edges)
         try:
-            csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_v2'], content_type='text/csv',
-                                      bindings={'IOC_node': node}, limit=(rand_limit))
-        except:
-            print("Error in Querying subgraph with seed", node)
-            return None
+            if args.traverse_with_time:
+                csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_withTime'], content_type='text/csv',
+                                          bindings={'IOC_node': node}, limit=(rand_limit))
+            else:
+                csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_NoTime'], content_type='text/csv',
+                                          bindings={'IOC_node': node}, limit=(rand_limit))
+        except Exception as e:
+            print("Error in Querying subgraph with seed", node, e)
+            return None, None
+        
     else:
-
-        if args.traverse_with_time:
-            try:
-                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph'],
+        try:
+            if args.traverse_with_time:
+                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
                                           content_type='text/csv',
                                           bindings={'IOC_node': node}, limit=(args.max_edges + 10))
-            except:
-                print("Error in Querying subgraph with seed", node)
-                return None
-        else:
-            try:
-                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_v2'],content_type='text/csv',bindings={'IOC_node': node}, limit=(args.max_edges + 10))
-            except:
-                print("Error in Querying subgraph with seed", node)
-                return None
+            else:
+                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(args.max_edges + 10))
+        except Exception as e:
+            print("Error in Querying subgraph with seed", node, e)
+            return None, None
     subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
+    if len(subgraphTriples) > args.max_edges:
+        print("Subgraph not within range", len(subgraphTriples))
+        return None, None
 
     # Convert subgraphTriples to networkx "subgraph"
     # Parse Triples
@@ -610,7 +612,7 @@ def Traverse_rdf(params):
         subgraphTriples['object_uuid'] = subgraphTriples['object'].str.split('/').str[-1]
     except:
         print("Not standard format for", node)
-        return None
+        return None, None
     # Construct Graph from Edges
     if args.traverse_with_time:
         subgraph = nx.from_pandas_edgelist(
@@ -669,9 +671,9 @@ def Traverse_rdf(params):
             attributes_df[row['uuid']] = {'type': 'memory'}
     nx.set_node_attributes(subgraph, attributes_df)
     attributes_df, nodes_df, temp_df = None, None, None
-    if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > args.max_nodes or subgraph.number_of_edges() > args.max_edges:
-        print("Subgraph not within range")
-        return None
+    if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > args.max_nodes:
+        print("Subgraph not within range", subgraph.number_of_nodes())
+        return None, None 
     print("Traversed Node in ", time.time() - traverse_time, "seconds")
     return ioc,subgraph
 
@@ -682,7 +684,11 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
     start_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     suspGraphs = []
     considered_per_ioc = {}
+    represented_nodes_per_ioc = {}
+    represented_ioc = set()
     matched_ioc_mask = copy.deepcopy(suspicious_nodes)
+    for ioc in matched_ioc_mask:
+        represented_nodes_per_ioc[ioc] = 0    
     for ioc in matched_ioc_mask:
         considered_per_ioc[ioc] = 0
     if args.parallel:
@@ -718,10 +724,14 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
             if node_id in all_suspicious_nodes:
                 subgraph.nodes[node_id]["candidate"] = True
                 subgraph.nodes[node_id]["ioc"] = revert_suspicious_nodes[node_id]
+                represented_ioc.add(revert_suspicious_nodes[node_id])
+                represented_nodes_per_ioc[revert_suspicious_nodes[node_id]] += 1                
     suspicious_nodes, all_suspicious_nodes, revert_suspicious_nodes = None, None, None
 
     print("Number of subgraphs:", len(suspGraphs))
     print("Number of subgraph per IOC:\n", considered_per_ioc)
+    print("Total extracted subgraphs represent",len(represented_ioc),"IOCs out of",len(matched_ioc_mask.keys()))
+    print("Number of represented nodes per IOC in all extracted subgraphs:\n",represented_nodes_per_ioc)
     if len(suspGraphs) > 0:
         print("Average number of nodes in subgraphs:",
               round(mean([supgraph.number_of_nodes() for supgraph in suspGraphs])))

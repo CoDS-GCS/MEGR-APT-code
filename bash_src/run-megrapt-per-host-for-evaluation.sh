@@ -68,22 +68,53 @@ preprocess_graph () {
 read -p "Do you want to skip subgraph extraction (y/N)": skip
 if [[ "$skip" == "y" ]]
 then
-  read -p "Enter the Threshold": Threshold
+    read -p "Enter the Threshold": Threshold
 else  
-  Threshold=0.4
-  read -p "Do you want to enter specific query graphs folder (y/N)": specific_QG
-  if [[ "$specific_QG" == "y" ]]
-  then
+    Threshold=0.4
+    read -p "Do you want to enter specific query graphs folder (y/N)": specific_QG
+    if [[ "$specific_QG" == "y" ]]
+    then
     read -p "Enter the Query Graphs folder:" QG_folder
     read -p "Enter the Query Graphs IOCs file:" QG_IOCs
-  fi
-  preprocess_graph BSD_1 attack_BSD_1 ${specific_QG} ${QG_folder} ${QG_IOCs}
-  preprocess_graph BSD_2 attack_BSD_2 ${specific_QG} ${QG_folder} ${QG_IOCs} 
-  preprocess_graph BSD_3 attack_BSD_3_4 ${specific_QG} ${QG_folder} ${QG_IOCs}
-  preprocess_graph BSD_4 attack_BSD_3_4 ${specific_QG} ${QG_folder} ${QG_IOCs}
-  for Query in {BSD_1,BSD_2,BSD_3,BSD_4}; do 
-    preprocess_graph ${Query} benign_BSD ${specific_QG} ${QG_folder} ${QG_IOCs}
-  done
+    fi
+    if [[ "$host" == "cadets" ]]
+    then
+        preprocess_graph BSD_1 attack_BSD_1 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph BSD_2 attack_BSD_2 ${specific_QG} ${QG_folder} ${QG_IOCs} 
+        preprocess_graph BSD_3 attack_BSD_3_4 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph BSD_4 attack_BSD_3_4 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        for Query in {BSD_1,BSD_2,BSD_3,BSD_4}; do 
+        preprocess_graph ${Query} benign_BSD ${specific_QG} ${QG_folder} ${QG_IOCs}
+        done
+    elif [[ "$host" == "theia" ]]
+    then
+        preprocess_graph Linux_1 attack_linux_1_2 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Linux_2 attack_linux_1_2 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        for Query in {Linux_1,Linux_2}; do 
+            preprocess_graph ${Query} benign_theia ${specific_QG} ${QG_folder} ${QG_IOCs}
+        done
+    elif [[ "$host" == "trace" ]]
+    then
+        preprocess_graph Linux_3 attack_linux_3 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Linux_4 attack_linux_4 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        for Query in {Linux_3,Linux_4}; do 
+            preprocess_graph ${Query} benign_trace ${specific_QG} ${QG_folder} ${QG_IOCs}
+        done
+    elif [[ "$host" == "optc" ]]
+    then
+        preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Malicious_Upgrade attack_SysClient0051 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        
+        for PG in {benign_SysClient0201,benign_SysClient0501,benign_SysClient0051,benign_SysClient0358}; do
+            for Query in {Plain_PowerShell_Empire,Custom_PowerShell_Empire,Malicious_Upgrade}; do
+                preprocess_graph ${Query} ${PG} ${specific_QG} ${QG_folder} ${QG_IOCs}
+            done
+        done
+    else
+        echo "Undefined host."
+    fi
 fi
 
 
