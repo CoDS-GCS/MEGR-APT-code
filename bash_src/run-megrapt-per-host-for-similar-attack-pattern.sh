@@ -52,9 +52,9 @@ preprocess_graph () {
     if [[ "$specific_QG" == "y" ]]
     then
       echo "Query Graph Folder ${QG_folder}, IOCs ${QG_IOCs}"
-      python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --min-nodes 3 --max-nodes 200 --output-prx ${output_prx} --query-graphs-folder ./dataset/${dataset_name}/${QG_folder}/ --ioc-file ./dataset/${dataset_name}/${QG_IOCs}.json --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/Evaluate_Per_Host/preprocessing_${host}_rdf_${output_prx}_${date}.txt
+      python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --query-graphs-folder ./dataset/${dataset_name}/${QG_folder}/ --ioc-file ./dataset/${dataset_name}/${QG_IOCs}.json --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/Evaluate_Per_Host/preprocessing_${host}_rdf_${output_prx}_${date}.txt
     else
-      python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --min-nodes 3 --max-nodes 200 --output-prx ${output_prx} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/Evaluate_Per_Host/preprocessing_${host}_rdf_${output_prx}_${date}.txt
+      python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/Evaluate_Per_Host/preprocessing_${host}_rdf_${output_prx}_${date}.txt
     fi
 }
 

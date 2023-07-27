@@ -34,16 +34,14 @@ from dataset_config import get_stardog_cred
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
-parser.add_argument('--max-nodes', type=int, help='Maximum number of nodes for subgraphs', default=200)
-parser.add_argument('--max-edges', type=int, help='Maximum number of edges for subgraphs', default=1000)
-parser.add_argument('--max-iterations', type=int, help='Maximum number of iterations while generating subgraphs',
-                    default=20)
+parser.add_argument('--max-nodes-mult-qg', type=int, help='Maximum number of nodes for subgraphs', default=10)
+parser.add_argument('--max-nodes-training', type=int, help='Maximum number of nodes for subgraphs', default=200)
+parser.add_argument('--max-edges-mult-qg', type=int, help='Maximum number of edges for subgraphs', default=25)
+parser.add_argument('--max-edges-training', type=int, help='Maximum number of edges for subgraphs', default=1000)
 parser.add_argument('--min-iocs', type=int, help='Minimum number of Query Graph IOCs to accept subgraph', default=1)
 parser.add_argument('--output-prx', type=str, help='output file prefix ', default=None)
-parser.add_argument('--abstract-edges', help='Keep abstracted subgraphs', action="store_true", default=False)
 parser.add_argument('--parallel', help='Encode Subgraphs in parallel', action="store_true", default=False)
-parser.add_argument('--ioc-file', nargs="?", help='Path of Query Graph IOCs file',
-                    default="./dataset/darpa_theia/query_graphs_IOCs.json")
+parser.add_argument('--ioc-file', nargs="?", help='Path of Query Graph IOCs file',default="./dataset/darpa_theia/query_graphs_IOCs.json")
 parser.add_argument('--dataset', nargs="?", help='Dataset name', default="darpa_theia")
 parser.add_argument('--training', help='Prepare training set', action="store_true", default=False)
 parser.add_argument('--n-subgraphs', type=int, help='Number of Subgraph', default=None)
@@ -565,12 +563,13 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
 # def Traverse_rdf(graph_sparql_queries,node,suspicious = True):
 def Traverse_rdf(params):
     traverse_time = time.time()
+    global max_edges,max_nodes
     graph_sparql_queries = params[0]
     ioc = params[1]
     node = params[2]
     node = "\"" + node + "\""
     if args.training:
-        rand_limit = random.randint((args.max_edges / 10), args.max_edges)
+        rand_limit = random.randint((max_edges / 10), max_edges)
         try:
             if args.traverse_with_time:
                 csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_withTime'], content_type='text/csv',
@@ -587,14 +586,14 @@ def Traverse_rdf(params):
             if args.traverse_with_time:
                 csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
                                           content_type='text/csv',
-                                          bindings={'IOC_node': node}, limit=(args.max_edges + 10))
+                                          bindings={'IOC_node': node}, limit=(max_edges + 10))
             else:
-                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(args.max_edges + 10))
+                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
         except Exception as e:
             print("Error in Querying subgraph with seed", node, e)
             return None, None
     subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
-    if len(subgraphTriples) > args.max_edges:
+    if len(subgraphTriples) > max_edges:
         print("Subgraph not within range", len(subgraphTriples))
         return None, None
 
@@ -645,33 +644,35 @@ def Traverse_rdf(params):
                                       bindings={'Node': Node_pattern})
             temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': 'process'}
+                attributes_df[row['uuid']] = {'type': row['type']}
             else:
-                temp_df['type'] = 'process'
+                temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'file':
+        elif row['type'] == 'file':
             csv_results = conn.select(graph_sparql_queries['File_attributes'], content_type='text/csv',
                                       bindings={'Node': Node_pattern})
             temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': 'file'}
+                attributes_df[row['uuid']] = {'type': row['type']}
             else:
-                temp_df['type'] = 'file'
+                temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'flow':
+        elif row['type'] == 'flow':
             csv_results = conn.select(graph_sparql_queries['Flow_attributes'], content_type='text/csv',
                                       bindings={'Node': Node_pattern})
             temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': 'flow'}
+                attributes_df[row['uuid']] = {'type': row['type']}
             else:
                 temp_df['type'] = 'flow'
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'memory':
-            attributes_df[row['uuid']] = {'type': 'memory'}
+        elif row['type'] in ['memory','pipe','shell']:
+            attributes_df[row['uuid']] = {'type': row['type']}
+        else:
+            print("Undefined node type", row['type'])
     nx.set_node_attributes(subgraph, attributes_df)
     attributes_df, nodes_df, temp_df = None, None, None
-    if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > args.max_nodes:
+    if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > max_nodes:
         print("Subgraph not within range", subgraph.number_of_nodes())
         return None, None 
     print("Traversed Node in ", time.time() - traverse_time, "seconds")
@@ -824,8 +825,15 @@ def encode_for_RGCN(g):
     mapping = {name: j for j, name in enumerate(g.nodes())}
     g = nx.relabel_nodes(g, mapping)
     x = torch.zeros(g.number_of_nodes(), dtype=torch.long)
+    tmp_g = copy.deepcopy(g)
     for node, info in g.nodes(data=True):
-        x[int(node)] = types.index(info['type'].upper())
+        try:
+            x[int(node)] = types.index(info['type'].upper())
+        except Exception as e:
+            print("Undefined node type. The error", e, "The nodes attributes", info)
+            tmp_g.remove_node(node)
+            continue
+    g = copy.deepcopy(tmp_g)
     x = F.one_hot(x, num_classes=len(types)).to(torch.float)
     for node in g.nodes():
         g.nodes[node]["label"] = x[node]
@@ -834,7 +842,10 @@ def encode_for_RGCN(g):
                   'UNLINK']
     for n1, n2, info in g.edges(data=True):
         for k, info in g.get_edge_data(n1, n2).items():
-            g.edges[n1, n2, k]["edge_label"] = edge_types.index(info['type'].upper())
+            try:
+                g.edges[n1, n2, k]["edge_label"] = edge_types.index(info['type'].upper())
+            except Exception as e:
+                print("Undefined edge type. The error", e, "The nodes attributes", info)
     dgl_graph = dgl.from_networkx(g, node_attrs=["label"], edge_attrs=["edge_label"])
     g.clear()
     x = None
@@ -891,6 +902,7 @@ def convert_to_torch_data(training_graphs, testing_graphs):
 def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     start_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     one_graph_time = time.time()
+    global max_edges,max_nodes
     query_pattern = '\"' + query_graph_name + '\"'
     GRAPH_NAME = str(GRAPH_IRI.split("/")[-2])
     print("\nprocessing ", GRAPH_NAME, "with", query_graph_name)
@@ -899,7 +911,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     for sparql_name, sparql_query in graph_sparql_queries.items():
         graph_sparql_queries[sparql_name] = sparql_query.replace("<Query>", query_pattern).replace("<GRAPH_NAME>",
                                                                                                    GRAPH_NAME).replace(
-            "<MAX_EDGES>", str(args.max_edges + 10))
+            "<MAX_EDGES>", str(max_edges + 10))
     suspicious_nodes, all_suspicious_nodes = label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name)
     if len(all_suspicious_nodes) == 0:
         print("No suspicious Nodes in ", GRAPH_NAME, "with", query_graph_name)
@@ -966,12 +978,12 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
 def process_one_graph_training(GRAPH_IRI, sparql_queries, query_graphs, n_subgraphs=args.n_subgraphs):
     one_graph_time = time.time()
     current_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    global max_edges,max_nodes
     GRAPH_NAME = GRAPH_IRI.split("/")[-2]
     print("\nprocessing ", GRAPH_NAME)
     graph_sparql_queries = copy.deepcopy(sparql_queries)
     for sparql_name, sparql_query in graph_sparql_queries.items():
-        graph_sparql_queries[sparql_name] = sparql_query.replace("<GRAPH_NAME>", GRAPH_NAME).replace("<MAX_EDGES>",
-                                                                                                     str(args.max_edges + 10))
+        graph_sparql_queries[sparql_name] = sparql_query.replace("<GRAPH_NAME>", GRAPH_NAME).replace("<MAX_EDGES>",str(max_edges + 10))
     for query_graph_name in query_graphs:
         query_pattern = '\"' + query_graph_name + '\"'
         temp_graph_sparql_queries = copy.deepcopy(graph_sparql_queries)
@@ -993,6 +1005,11 @@ def trim_memory() -> int:
     libc = ctypes.CDLL("libc.so.6")
     return libc.malloc_trim(0)
 
+def release_memory(client):
+    client.restart()
+    client.run(gc.collect)
+    client.run(trim_memory)
+    time.sleep(5)
 
 def main():
     start_running_time = time.time()
@@ -1003,8 +1020,10 @@ def main():
         print("Number of used cores is ", cores)
         cluster = LocalCluster(n_workers=cores)
         client = Client(cluster)
-        client.run(gc.collect)
-        client.run(trim_memory)
+        release_memory(client)
+    global max_edges,max_nodes
+    max_edges = args.max_edges_training
+    max_nodes = args.max_nodes_training
     print("processing query graphs")
     query_graphs = {}
     for graph_name in glob.glob('./dataset/darpa_theia/query_graphs/*'):
@@ -1051,22 +1070,40 @@ def main():
     elif(args.test_a_qg):
         print("Extracting suspicious subgraphs for",args.test_a_qg,"in PG:",args.pg_name)
         GRAPH_IRI = "http://grapt.org/darpa_tc3/theia/" + args.pg_name +"/"
+        max_nodes = query_graphs[args.test_a_qg].number_of_nodes() * args.max_nodes_mult_qg
+        print("Max Nodes",max_nodes)
+        max_edges = query_graphs[args.test_a_qg].number_of_edges() * args.max_edges_mult_qg
+        print("Max Edges",max_edges)               
         process_one_graph(GRAPH_IRI, sparql_queries, args.test_a_qg)
     else:
         print("processing Provenance Graphs prediction samples")
         query_graph_name = "Linux_1"
         GRAPH_IRI = "http://grapt.org/darpa_tc3/theia/attack_linux_1_2/"
+        max_nodes = query_graphs[query_graph_name].number_of_nodes() * args.max_nodes_mult_qg
+        print("Max Nodes",max_nodes)
+        max_edges = query_graphs[query_graph_name].number_of_edges() * args.max_edges_mult_qg
+        print("Max Edges",max_edges)  
         process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
         query_graph_name = "Linux_2"
         GRAPH_IRI = "http://grapt.org/darpa_tc3/theia/attack_linux_1_2/"
+        max_nodes = query_graphs[query_graph_name].number_of_nodes() * args.max_nodes_mult_qg
+        print("Max Nodes",max_nodes)
+        max_edges = query_graphs[query_graph_name].number_of_edges() * args.max_edges_mult_qg
+        print("Max Edges",max_edges)  
         process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
         GRAPH_IRI = "http://grapt.org/darpa_tc3/theia/benign_theia/"
-        for query_name in query_graphs:
-            process_one_graph(GRAPH_IRI, sparql_queries, query_name)
+        for query_graph_name in query_graphs:
+            max_nodes = query_graphs[query_graph_name].number_of_nodes() * args.max_nodes_mult_qg
+            print("Max Nodes",max_nodes)
+            max_edges = query_graphs[query_graph_name].number_of_edges() * args.max_edges_mult_qg
+            print("Max Edges",max_edges)  
+            process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
     print("---Total Running Time for", args.dataset, "host is: %s seconds ---" % (time.time() - start_running_time))
+    if args.parallel:
+        release_memory(client)
 
 
 if __name__ == "__main__":

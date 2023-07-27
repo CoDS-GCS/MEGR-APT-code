@@ -50,7 +50,7 @@ insert_benign_subgraphs () {
     run=$1
     n_subgraphs=$2
     echo "insert ${n_subgraphs} benign subgraphs to ${host} ${pg_name} ${output_prx}_${date}" 
-    python -u src/insert_benign_subgraphs.py --dataset ${dataset_name} --n-subgraphs ${n_subgraphs} --insertion-node ${insertion_node} --database-name ${stardog_db} --qg-name ${QG} --pg-name ${pg_name}  --output-prx experiments/${output_prx} >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
+    python -u src/insert_benign_subgraphs.py --dataset ${dataset_name} --n-subgraphs ${n_subgraphs} --insertion-node ${insertion_node} --database-name ${stardog_db} --parallel --qg-name ${QG} --pg-name ${pg_name}  --output-prx experiments/${output_prx} >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
 }
 
 extract_subgraphs () {
@@ -103,21 +103,22 @@ clear_inserted_subgraphs () {
     python -u src/clear_inserted_subgraphs.py --dataset ${dataset_name} --database-name ${stardog_db} --output-prx experiments/${output_prx} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
 }
 
+read -p "Enter the number of subgraphs: " n_subgraphs
 mimicry_attack () {
-    for n_subgraphs in $(seq 1 10); do
-        for run in $(seq 1 ${runs}); do
-            echo "Run number ${run}, n_subgraphs: ${n_subgraphs}" 
-            echo "Threat Hunting the Query Graph ${QG} within the provenance graph ${pg_name}" >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
-            echo "The detecion performance before mimicry attack " >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
-            extract_subgraphs ${run} ${n_subgraphs}
-            select_and_predict_model ${run} ${n_subgraphs}
-            insert_benign_subgraphs ${run} ${n_subgraphs} 
-            echo "The detecion performance after mimicry attack " >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
-            extract_subgraphs ${run} ${n_subgraphs}
-            select_and_predict_model ${run} ${n_subgraphs}
-            clear_inserted_subgraphs ${run} ${n_subgraphs}
-        done
+    # for n_subgraphs in $(seq 1 10); do
+    for run in $(seq 1 ${runs}); do
+        echo "Run number ${run}, n_subgraphs: ${n_subgraphs}" 
+        echo "Threat Hunting the Query Graph ${QG} within the provenance graph ${pg_name}" >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
+        echo "The detecion performance before mimicry attack " >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
+        extract_subgraphs ${run} ${n_subgraphs}
+        select_and_predict_model ${run} ${n_subgraphs}
+        insert_benign_subgraphs ${run} ${n_subgraphs} 
+        echo "The detecion performance after mimicry attack " >> logs/${dataset_name}/${output_prx}/mimicry_attack_with_${n_subgraphs}_subgraphs_run_${run}_${date}.txt
+        extract_subgraphs ${run} ${n_subgraphs}
+        select_and_predict_model ${run} ${n_subgraphs}
+        clear_inserted_subgraphs ${run} ${n_subgraphs}
     done
+    # done
 }
 
 # read -p "Enter the query graph name: " QG

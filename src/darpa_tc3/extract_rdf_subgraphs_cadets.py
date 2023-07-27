@@ -34,13 +34,12 @@ import multiprocessing
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
-parser.add_argument('--max-nodes', type=int, help='Maximum number of nodes for subgraphs', default=200)
-parser.add_argument('--max-edges', type=int, help='Maximum number of edges for subgraphs', default=1000)
-parser.add_argument('--max-iterations', type=int, help='Maximum number of iterations while generating subgraphs',
-                    default=20)
+parser.add_argument('--max-nodes-mult-qg', type=int, help='Maximum number of nodes for subgraphs', default=10)
+parser.add_argument('--max-nodes-training', type=int, help='Maximum number of nodes for subgraphs', default=200)
+parser.add_argument('--max-edges-mult-qg', type=int, help='Maximum number of edges for subgraphs', default=25)
+parser.add_argument('--max-edges-training', type=int, help='Maximum number of edges for subgraphs', default=1000)
 parser.add_argument('--min-iocs', type=int, help='Minimum number of Query Graph IOCs to accept subgraph', default=1)
 parser.add_argument('--output-prx', type=str, help='output file prefix ', default=None)
-parser.add_argument('--abstract-edges', help='Keep abstracted subgraphs', action="store_true", default=False)
 parser.add_argument('--parallel', help='Encode Subgraphs in parallel', action="store_true", default=False)
 parser.add_argument('--query-graphs-folder', nargs="?", help='Path of Query Graph folder', default="./dataset/darpa_cadets/query_graphs/")
 parser.add_argument('--ioc-file', nargs="?", help='Path of Query Graph IOCs file', default="./dataset/darpa_cadets/query_graphs_IOCs.json")
@@ -202,201 +201,6 @@ sparql_queries = {'Query_Suspicious_IP': """
         }  
     }   
 """,
-                  'Extract_Suspicious_Subgraph_withTime_v4':"""
-                   PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/cadets/<GRAPH_NAME>/>
-
-    SELECT DISTINCT * {
-        {
-            # 1- forward
-            SELECT DISTINCT ?subject ?predicate ?object ?timestamp
-            WHERE {
-                << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
-                ?subject <GRAPH_NAME>:uuid ?IOC_node .
-                ?object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-                
-            }
-        } UNION {
-            #2- backward
-            SELECT DISTINCT ?subject ?predicate ?object ?timestamp
-            WHERE {
-                << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
-                ?object <GRAPH_NAME>:uuid ?IOC_node .
-                ?subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-            }
-        } 
-        UNION {
-            #3-a forward from all first neighbours  
-            SELECT DISTINCT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) ?timestamp
-            WHERE {
-                ?first_subject ?first_predicate ?first_object .
-                << ?first_object ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp . 
-                ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
-                ?first_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-                ?next_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-                
-            }    
-        } UNION {
-            #3-b forward from all first neighbours  
-            SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)  ?timestamp
-            WHERE {
-                ?first_subject ?first_predicate ?first_object .
-                <<?first_subject ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp . 
-                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
-                ?first_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-                ?next_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-            }    
-        } UNION {
-            #4-a Backward from all first neighbours  
-            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) ?timestamp 
-            WHERE {
-                ?first_subject ?first_predicate ?first_object .
-                << ?next_subject ?next_predicate ?first_object >> <GRAPH_NAME>:timestamp ?timestamp .
-                ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
-                ?next_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-                ?first_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-            }    
-        } UNION {
-            #4-b Backward from all first neighbours  
-            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) ?timestamp
-            WHERE {
-                ?first_subject ?first_predicate ?first_object .
-                << ?next_subject ?next_predicate ?first_subject >> <GRAPH_NAME>:timestamp ?timestamp .
-                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
-                ?next_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-                ?first_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-            }    
-        }  
-    }   LIMIT <MAX_EDGES> 
-                  """,
-                  'Extract_Suspicious_Subgraph_withTime_v3':"""
-    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/cadets/<GRAPH_NAME>/>
-    PREFIX event: <http://grapt.org/darpa_tc3/cadets/<GRAPH_NAME>/event/> 
-    SELECT  DISTINCT ?subject ?predicate ?object ?timestamp
-    {
-        {
-            # 1- forward
-            SELECT DISTINCT ?subject ?predicate ?object ?timestamp
-            WHERE {
-                << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
-                ?subject <GRAPH_NAME>:uuid ?IOC_node .
-                ?object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-                FILTER strstarts(str(?predicate),str(event:)) .
-            }   
-            LIMIT <MAX_EDGES>  
-        } 
-        UNION 
-        {
-            #2- backward
-            SELECT DISTINCT ?subject ?predicate ?object ?timestamp 
-            WHERE {
-                << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp.
-                ?object <GRAPH_NAME>:uuid ?IOC_node .
-                ?subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                FILTER (?candidate IN ("process", <Query>)).
-                FILTER strstarts(str(?predicate),str(event:)) .
-            } 
-            LIMIT <MAX_EDGES>  
-        } 
-        UNION 
-        {
-            # 3-a forward from all first neighbours  
-            SELECT 
-            (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) ?timestamp
-            WHERE {
-                <<?first_object ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp.
-                {
-                    SELECT DISTINCT ?first_object 
-                    WHERE {
-                        ?first_subject ?first_predicate ?first_object .
-                        ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
-                        ?first_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                        FILTER (?candidate IN ("process", <Query>)).
-                        FILTER strstarts(str(?first_predicate),str(event:)) .
-                    }
-                }
-                ?next_object rdf:type|<GRAPH_NAME>:suspicious ?candidate2 .
-                FILTER (?candidate2 IN ("process", <Query>)).
-                FILTER strstarts(str(?next_predicate),str(event:)) .
-            }    
-            LIMIT <MAX_EDGES> 
-        } 
-        UNION {
-             # 3-b forward from all first neighbours  
-            SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) ?timestamp  
-            WHERE {
-                <<?first_subject ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp.
-                { 
-                    SELECT DISTINCT ?first_subject
-                    WHERE {
-                        ?first_subject ?first_predicate ?first_object .
-                        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
-                        ?first_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                        FILTER (?candidate IN ("process", <Query>)).
-                        FILTER strstarts(str(?first_predicate),str(event:)) .
-                    }
-                }
-                ?next_object rdf:type|<GRAPH_NAME>:suspicious ?candidate2 .
-                FILTER (?candidate2 IN ("process", <Query>)).
-                FILTER strstarts(str(?next_predicate),str(event:)) .
-            } 
-            LIMIT <MAX_EDGES> 
-        } 
-        UNION {
-            #4-a Backward from all first neighbours  
-            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) ?timestamp
-            WHERE {
-                << ?next_subject ?next_predicate ?first_object >> <GRAPH_NAME>:timestamp ?timestamp .
-                {
-                    SELECT DISTINCT ?first_object
-                    WHERE{
-                        ?first_subject ?first_predicate ?first_object .
-                        ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
-                        ?first_object rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                        FILTER (?candidate IN ("process", <Query>)).
-                        FILTER strstarts(str(?first_predicate),str(event:)) .
-                    }
-                }
-                ?next_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate2 .
-                FILTER (?candidate2 IN ("process", <Query>)).
-                FILTER strstarts(str(?next_predicate),str(event:)) .
-            }    
-            LIMIT <MAX_EDGES>  
-        } 
-        UNION {
-        #     #4-b Backward from all first neighbours  
-            SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) ?timestamp
-            WHERE {
-                <<?next_subject ?next_predicate ?first_subject >> <GRAPH_NAME>:timestamp ?timestamp.
-                {
-                    SELECT DISTINCT  ?first_subject  
-                    WHERE {
-                        ?first_subject ?first_predicate ?first_object .
-                        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
-                        ?first_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate .
-                        FILTER (?candidate IN ("process", <Query>)).
-                        FILTER strstarts(str(?first_predicate),str(event:)) .
-                    }
-                }
-                ?next_subject rdf:type|<GRAPH_NAME>:suspicious ?candidate2 .
-                FILTER (?candidate2 IN ("process", <Query>)).
-                FILTER strstarts(str(?next_predicate),str(event:)) .
-            }   
-            LIMIT <MAX_EDGES>   
-        }  
-    } 
-    LIMIT <MAX_EDGES>
-                  """,
 'Extract_Suspicious_Subgraph_NoTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/cadets/<GRAPH_NAME>/> 
     SELECT  DISTINCT ?subject ?predicate ?object {
@@ -688,12 +492,13 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
 # def Traverse_rdf(graph_sparql_queries,node,suspicious = True):
 def Traverse_rdf(params):
     traverse_time = time.time()
+    global max_edges,max_node
     graph_sparql_queries = params[0]
     ioc = params[1]
     node = params[2]
     node = "\"" + node + "\""
     if args.training:
-        rand_limit = random.randint((args.max_edges / 10), args.max_edges)
+        rand_limit = random.randint((max_edges / 10), max_edges)
         try:
             csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph'], content_type='text/csv',
                                       bindings={'IOC_node': node}, limit=(rand_limit))
@@ -705,15 +510,15 @@ def Traverse_rdf(params):
             if args.traverse_with_time:
                 csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
                                           content_type='text/csv',
-                                          bindings={'IOC_node': node}, limit=(args.max_edges+10))
+                                          bindings={'IOC_node': node}, limit=(max_edges+10))
             else:
                 csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'], content_type='text/csv',
-                                          bindings={'IOC_node': node}, limit=(args.max_edges+10))
+                                          bindings={'IOC_node': node}, limit=(max_edges+10))
         except Exception as e:
             print("Error in Querying subgraph with seed", node, e)
             return None, None
     subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
-    if len(subgraphTriples) > args.max_edges:
+    if len(subgraphTriples) > max_edges:
         print("Subgraph not within range", len(subgraphTriples))
         return None, None
     # Convert subgraphTriples to networkx "subgraph"
@@ -762,33 +567,35 @@ def Traverse_rdf(params):
                                       bindings={'Node': Node_pattern})
             temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': 'process'}
+                attributes_df[row['uuid']] = {'type': row['type']}
             else:
-                temp_df['type'] = 'process'
+                temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'file':
+        elif row['type'] == 'file':
             csv_results = conn.select(graph_sparql_queries['File_attributes'], content_type='text/csv',
                                       bindings={'Node': Node_pattern})
             temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': 'file'}
+                attributes_df[row['uuid']] = {'type': row['type']}
             else:
-                temp_df['type'] = 'file'
+                temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'flow':
+        elif row['type'] == 'flow':
             csv_results = conn.select(graph_sparql_queries['Flow_attributes'], content_type='text/csv',
                                       bindings={'Node': Node_pattern})
             temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': 'flow'}
+                attributes_df[row['uuid']] = {'type': row['type']}
             else:
                 temp_df['type'] = 'flow'
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'pipe':
-            attributes_df[row['uuid']] = {'type': 'pipe'}
+        elif row['type'] in ['memory','pipe','shell']:
+            attributes_df[row['uuid']] = {'type': row['type']}
+        else:
+            print("Undefined node type", row['type'])
     nx.set_node_attributes(subgraph, attributes_df)
     attributes_df, nodes_df, temp_df = None, None, None
-    if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > args.max_nodes :
+    if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > max_nodes :
         print("Subgraph not within range", subgraph.number_of_nodes())
         return None, None
     print("Extracted a subgraph with", subgraph.number_of_nodes(), "nodes, and ", subgraph.number_of_edges(), "edges")
@@ -944,15 +751,25 @@ def encode_for_RGCN(g):
     mapping = {name: j for j, name in enumerate(g.nodes())}
     g = nx.relabel_nodes(g, mapping)
     x = torch.zeros(g.number_of_nodes(), dtype=torch.long)
+    tmp_g = copy.deepcopy(g)
     for node, info in g.nodes(data=True):
-        x[int(node)] = types.index(info['type'].upper())
+        try:
+            x[int(node)] = types.index(info['type'].upper())
+        except Exception as e:
+            print("Undefined node type. The error", e, "The nodes attributes", info)
+            g.remove_node(node)
+            continue
+    g = copy.deepcopy(tmp_g)
     x = F.one_hot(x, num_classes=len(types)).to(torch.float)
     for node in g.nodes():
         g.nodes[node]["label"] = x[node]
     edge_types = ['ACCEPT', 'ADD_OBJECT_ATTRIBUTE', 'BIND', 'CHANGE_PRINCIPAL', 'CLOSE', 'CONNECT', 'CREATE_OBJECT', 'EXECUTE', 'EXIT', 'FCNTL', 'FLOWS_TO', 'FORK', 'LINK', 'LOGIN', 'LSEEK', 'MMAP', 'MODIFY_FILE_ATTRIBUTES', 'MODIFY_PROCESS', 'MPROTECT', 'OPEN', 'OTHER', 'READ', 'RECVFROM', 'RECVMSG', 'RENAME', 'SENDMSG', 'SENDTO', 'SIGNAL', 'TRUNCATE', 'UNLINK', 'WRITE']
     for n1, n2, info in g.edges(data=True):
         for k, info in g.get_edge_data(n1, n2).items():
-            g.edges[n1, n2, k]["edge_label"] = edge_types.index(info['type'].upper())
+            try:
+                g.edges[n1, n2, k]["edge_label"] = edge_types.index(info['type'].upper())
+            except Exception as e:
+                print("Undefined edge type. The error", e, "The nodes attributes", info)
     dgl_graph = dgl.from_networkx(g, node_attrs=["label"], edge_attrs=["edge_label"])
     g.clear()
     x = None
@@ -1009,15 +826,14 @@ def convert_to_torch_data(training_graphs, testing_graphs):
 def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     start_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     one_graph_time = time.time()
+    global max_edges,max_node
     query_pattern = '\"' + query_graph_name + '\"'
     GRAPH_NAME = str(GRAPH_IRI.split("/")[-2])
     print("\nprocessing ", GRAPH_NAME, "with", query_graph_name)
     print("Extract Subgraphs From", GRAPH_NAME)
     graph_sparql_queries = copy.deepcopy(sparql_queries)
     for sparql_name, sparql_query in graph_sparql_queries.items():
-        graph_sparql_queries[sparql_name] = sparql_query.replace("<Query>", query_pattern).replace("<GRAPH_NAME>",
-                                                                                                   GRAPH_NAME).replace(
-            "<MAX_EDGES>", str(args.max_edges+10))
+        graph_sparql_queries[sparql_name] = sparql_query.replace("<Query>", query_pattern).replace("<GRAPH_NAME>",GRAPH_NAME).replace("<MAX_EDGES>", str(max_edges+10))
     suspicious_nodes, all_suspicious_nodes = label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name)
     if len(all_suspicious_nodes) == 0:
         print("No suspicious Nodes in ", GRAPH_NAME, "with", query_graph_name)
@@ -1080,12 +896,12 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
 def process_one_graph_training(GRAPH_IRI, sparql_queries, query_graphs, n_subgraphs=args.n_subgraphs):
     one_graph_time = time.time()
     current_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    global max_edges,max_node
     GRAPH_NAME = GRAPH_IRI.split("/")[-2]
     print("\nprocessing ", GRAPH_NAME)
     graph_sparql_queries = copy.deepcopy(sparql_queries)
     for sparql_name, sparql_query in graph_sparql_queries.items():
-        graph_sparql_queries[sparql_name] = sparql_query.replace("<GRAPH_NAME>", GRAPH_NAME).replace("<MAX_EDGES>",
-                                                                                                     str(args.max_edges + 10))
+        graph_sparql_queries[sparql_name] = sparql_query.replace("<GRAPH_NAME>", GRAPH_NAME).replace("<MAX_EDGES>",str(max_edges + 10))
     for query_graph_name in query_graphs:
         query_pattern = '\"' + query_graph_name + '\"'
         temp_graph_sparql_queries = copy.deepcopy(graph_sparql_queries)
@@ -1106,17 +922,25 @@ def process_one_graph_training(GRAPH_IRI, sparql_queries, query_graphs, n_subgra
 def trim_memory() -> int:
     libc = ctypes.CDLL("libc.so.6")
     return libc.malloc_trim(0)
+def release_memory(client):
+    client.restart()
+    client.run(gc.collect)
+    client.run(trim_memory)
+    time.sleep(5)
+    
 def main():
     print(args)
     start_running_time = time.time()
     random.seed(123)
+    global max_edges,max_nodes
+    max_edges = args.max_edges_training
+    max_nodes = args.max_nodes_training
     if args.parallel:
         cores = multiprocessing.cpu_count() - 2
         print("Number of used cores is ", cores)
         cluster = LocalCluster(n_workers=cores)
         client = Client(cluster)
-        client.run(gc.collect)
-        client.run(trim_memory)
+        release_memory(client)
     print("processing query graphs")
     query_graphs = {}
     for graph_name in glob.glob((args.query_graphs_folder + '*')):
@@ -1190,6 +1014,10 @@ def main():
     elif(args.test_a_qg):
         print("Extracting suspicious subgraphs for",args.test_a_qg,"in PG:",args.pg_name)
         GRAPH_IRI = "http://grapt.org/darpa_tc3/cadets/" + args.pg_name +"/"
+        max_nodes = query_graphs[args.test_a_qg].number_of_nodes() * args.max_nodes_mult_qg
+        print("Max Nodes",max_nodes)
+        max_edges = query_graphs[args.test_a_qg].number_of_edges() * args.max_edges_mult_qg
+        print("Max Edges",max_edges)
         process_one_graph(GRAPH_IRI, sparql_queries, args.test_a_qg)
         print("********************************************")
         print("********************************************")
@@ -1197,26 +1025,47 @@ def main():
         print("processing Provenance Graphs prediction samples")
         query_graph_name = "BSD_1"
         GRAPH_IRI = "http://grapt.org/darpa_tc3/cadets/attack_BSD_1/"
+        max_nodes = query_graphs[query_graph_name].number_of_nodes() * args.max_nodes_mult_qg
+        print("Max Nodes",max_nodes)
+        max_edges = query_graphs[query_graph_name].number_of_edges() * args.max_edges_mult_qg
+        print("Max Edges",max_edges)
         process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
         query_graph_name = "BSD_2"
         GRAPH_IRI = "http://grapt.org/darpa_tc3/cadets/attack_BSD_2/"
+        max_nodes = query_graphs[query_graph_name].number_of_nodes() * args.max_nodes_mult_qg
+        print("Max Nodes",max_nodes)
+        max_edges = query_graphs[query_graph_name].number_of_edges() * args.max_edges_mult_qg
+        print("Max Edges",max_edges)
         process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
         query_graph_name = "BSD_3"
         GRAPH_IRI = "http://grapt.org/darpa_tc3/cadets/attack_BSD_3_4/"
+        max_nodes = query_graphs[query_graph_name].number_of_nodes() * args.max_nodes_mult_qg
+        print("Max Nodes",max_nodes)
+        max_edges = query_graphs[query_graph_name].number_of_edges() * args.max_edges_mult_qg
+        print("Max Edges",max_edges)
         process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
         query_graph_name = "BSD_4"
         GRAPH_IRI = "http://grapt.org/darpa_tc3/cadets/attack_BSD_3_4/"
+        max_nodes = query_graphs[query_graph_name].number_of_nodes() * args.max_nodes_mult_qg
+        print("Max Nodes",max_nodes)
+        max_edges = query_graphs[query_graph_name].number_of_edges() * args.max_edges_mult_qg
+        print("Max Edges",max_edges)
         process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
         GRAPH_IRI = "http://grapt.org/darpa_tc3/cadets/benign_BSD/"
-        for query_name in query_graphs:
-            process_one_graph(GRAPH_IRI, sparql_queries, query_name)
+        for query_graph_name in query_graphs:
+            max_nodes = query_graphs[query_graph_name].number_of_nodes() * args.max_nodes_mult_qg
+            print("Max Nodes",max_nodes)
+            max_edges = query_graphs[query_graph_name].number_of_edges() * args.max_edges_mult_qg
+            print("Max Edges",max_edges)
+            process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
     print("---Total Running Time for", args.dataset, "host is: %s seconds ---" % (time.time() - start_running_time))
-
+    if args.parallel:
+        release_memory(client)
 
 if __name__ == "__main__":
     main()

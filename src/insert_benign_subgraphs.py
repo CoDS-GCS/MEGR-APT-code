@@ -365,6 +365,7 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
                     subgraph.clear()
                     del subgraphTriples
             seed_number = 10
+        benignSubGraphs = benignSubGraphs[0:n_subgraphs]
     else:
         # Query Sequentially
         csv_results = conn.select(graph_sparql_queries['Random_Benign_Nodes'], content_type='text/csv',
@@ -475,10 +476,13 @@ def mutate_attack(insertion_node,n_subgraphs,GRAPH_IRI,graph_sparql_queries,beni
     total_inserted_edges = 0
     all_inserted_subgraphs = []
     for subgraph in benignSubGraphs_df:
-        total_inserted_edges += len(subgraph)
-        benign_subgraph_turtle = ingest_benign_subgraph(insertion_node,subgraph,GRAPH_IRI,benign_pg_name)
-        all_inserted_subgraphs.append(benign_subgraph_turtle)
-        del benign_subgraph_turtle
+        try:
+            benign_subgraph_turtle = ingest_benign_subgraph(insertion_node,subgraph,GRAPH_IRI,benign_pg_name)
+            total_inserted_edges += len(subgraph)
+            all_inserted_subgraphs.append(benign_subgraph_turtle)
+            del benign_subgraph_turtle
+        except Exception as e:
+            print("Couldn't ingest",e)
     print("Total mutated edges",total_inserted_edges)
     print("Total mutated subgraphs",len(all_inserted_subgraphs))
     return all_inserted_subgraphs,total_inserted_edges

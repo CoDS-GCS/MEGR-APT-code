@@ -8,7 +8,7 @@ def get_postgres_cred(dataset):
 
 def get_stardog_cred(dataset):
     connection_details = {
-        'endpoint': 'http://localhost:17010',
+        'endpoint': '',
         'username': '',
         'password': ''
     }
