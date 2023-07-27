@@ -1009,7 +1009,6 @@ def release_memory(client):
     client.restart()
     client.run(gc.collect)
     client.run(trim_memory)
-    time.sleep(5)
 
 def main():
     start_running_time = time.time()

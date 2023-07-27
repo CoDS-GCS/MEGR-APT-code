@@ -1,7 +1,7 @@
 #!/bin/sh
 date=$(date +'%d_%m_%Y') 
 output_prx=Temp
-output_prx=$1
+read -p "Enter the experiment folder name:" output_prx
 echo "The output forlder is: ${output_prx}"
 
 echo "Available Hosts (cadets, theia, trace, optc)"

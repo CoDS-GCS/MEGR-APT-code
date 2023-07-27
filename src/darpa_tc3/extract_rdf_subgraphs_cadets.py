@@ -926,7 +926,6 @@ def release_memory(client):
     client.restart()
     client.run(gc.collect)
     client.run(trim_memory)
-    time.sleep(5)
     
 def main():
     print(args)
@@ -940,7 +939,8 @@ def main():
         print("Number of used cores is ", cores)
         cluster = LocalCluster(n_workers=cores)
         client = Client(cluster)
-        release_memory(client)
+        client.run(gc.collect)
+    client.run(trim_memory)
     print("processing query graphs")
     query_graphs = {}
     for graph_name in glob.glob((args.query_graphs_folder + '*')):
