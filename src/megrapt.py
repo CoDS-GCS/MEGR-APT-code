@@ -11,7 +11,6 @@ import glob
 
 from layers import AttentionModule, TensorNetworkModule, DiffPool
 from utils import calculate_ranking_correlation, calculate_prec_at_k, gen_pairs, ensure_dir, checkpoint
-from atlasDataset import ATLASDataset
 from darpaDataset import DARPADataset
 from dataset_config import get_ground_cases
 

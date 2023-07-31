@@ -12,7 +12,7 @@ predict_model () {
     ep=$7
     Threshold=$8
     echo "Predicting QG ${QG} in PG ${pg_name} with model parameters ${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}"
-    mkdir -p logs/${dataset_name}/experiments/${output_prx}
+    mkdir -p logs/${dataset_name}/${output_prx}
     python -u ./src/main.py --dataset ${dataset} --dataset-path ./dataset/${dataset_name}/experiments/${output_prx}/ --gnn-operator rgcn --embedding-layers ${layer} --learning-rate ${LR} --dropout ${DR} --epochs ${ep} --filters-1 ${vector1} --filters-2 ${vector2} --filters-3 ${vector3} --tensor-neurons ${vector3} --predict --predict-file ${tested_file} --log-similarity --threshold ${Threshold} --load ./model/megrapt/${dataset_name}/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}.pt > logs/${dataset_name}/${output_prx}/${stardog_db}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}_${QG}_in_${pg_name}_${date}.txt
     python -u ./src/main.py --dataset ${dataset} --dataset-path ./dataset/${dataset_name}/experiments/${output_prx}/ --gnn-operator rgcn --embedding-layers ${layer} --learning-rate ${LR} --dropout ${DR} --epochs ${ep} --filters-1 ${vector1} --filters-2 ${vector2} --filters-3 ${vector3} --tensor-neurons ${vector3} --predict --predict-file ${tested_file} --plot-thresholds --load ./model/megrapt/${dataset_name}/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}.pt
 
@@ -61,17 +61,16 @@ read -p "Enter the query graph name: " QG
 read -p "Enter the provenance graph name: " pg_name
 tested_file=${QG}_in_${pg_name}.pt
 
-
+  
 read -p "Do you want to enter specific query graphs folder (y/N)": Answer
+echo preprocessing_${host}_${output_prx}_${date}
+mkdir -p logs/${dataset_name}/${output_prx}
 if [[ "$Answer" == "y" ]]
 then
   read -p "Enter the Query Graphs folder:" QG_folder
   read -p "Enter the Query Graphs IOCs file:" QG_IOCs
-  echo preprocessing_${host}_${output_prx}_${date}
-  mkdir -p logs/${dataset_name}/experiments/${output_prx}
   python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --database-name ${stardog_db} --parallel --output-prx ${output_prx} --query-graphs-folder ./dataset/${dataset_name}/${QG_folder}/ --ioc-file ./dataset/${dataset_name}/${QG_IOCs}.json --test-a-qg ${QG} --pg-name ${pg_name} > logs/${dataset_name}/${output_prx}/preprocessing_${stardog_db}_${QG}_in_${pg_name}_${date}.txt
 else
-  echo preprocessing_${host}_${output_prx}_${date}
   python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --database-name ${stardog_db} --test-a-qg ${QG} --pg-name ${pg_name} --parallel --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/preprocessing_${stardog_db}_${QG}_in_${pg_name}_${date}.txt
 fi
 
