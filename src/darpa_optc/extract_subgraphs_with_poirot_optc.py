@@ -35,7 +35,7 @@ parser.add_argument('--benign', help='Process Benign graphs',action="store_true"
 parser.add_argument('--attack', help='Process attack graphs',action="store_true", default=False)
 parser.add_argument('--parallel', help='Encode Subgraphs in parallel',action="store_true", default=False)
 parser.add_argument('--training', help='Prepare training set',action="store_true", default=False)
-parser.add_argument('--ioc-file', nargs="?", help='Path of Query Graph IOCs file', default="./dataset/darpa_optc/query_graphs_IOCs.json")
+parser.add_argument('--ioc-file', nargs="?", help='Path of Query Graph IOCs file', default="./dataset/darpa_optc/query_graphs_allQgNodes.json")
 parser.add_argument('--n-subgraphs', type=int, help='Number of Subgraph', default=200)
 parser.add_argument('--IFS-extract', help='Use Influence Score in Subgraph Extraction',action="store_true", default=False)
 parser.add_argument('--influence-score', type=int, help='Influence score while traversing', default=3)
