@@ -1,0 +1,5 @@
+{
+    "Plain_PowerShell_Empire":{"file":["firefox","runme","mimikatz","powershell","zleazer","lsass"], "ip":["132.197.158.98"]}, 
+    "Custom_PowerShell_Empire": {"file": ["Microsoft Office","powershell","chrome","DeathStar","plink","export","payroll","Transfer1000"],"ip": ["202.6.172.98"]}, 
+    "Malicious_Upgrade":{"file": ["notepad++","lsass","cmd","mimikatz","ckfgw","update","myhbyxtpviwx","RTqWaEHv"],"ip": ["53.192.68.50"]}
+}

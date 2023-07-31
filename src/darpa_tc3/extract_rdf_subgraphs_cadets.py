@@ -850,7 +850,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
         return
     checkpoint(suspSubGraphs,
-               ( "./dataset/" + args.dataset + "/" + args.output_prx + "/predict/nx_suspicious_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
+               ( "./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/predict/nx_suspicious_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
     for i in range(1, 4):
         print("\nCheck Quality for", i, " IOCs of corresponding query graph")
         if i == args.min_iocs:
@@ -861,7 +861,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
                 print("No accepted subgraphs for", GRAPH_NAME, "with", query_graph_name)
                 return
             checkpoint(accepted_suspSubGraphs, (
-                        "./dataset/" + args.dataset + "/" + args.output_prx + "/predict/nx_accepted_suspSubGraphs_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
+                        "./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/predict/nx_accepted_suspSubGraphs_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
             suspSubGraphs = accepted_suspSubGraphs
         else:
             subgraph_quality_check_per_query(suspSubGraphs, suspicious_nodes, min_iocs=i)
@@ -879,12 +879,12 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     else:
         prediction_graphs_dgl = [encode_for_RGCN(g) for g in suspSubGraphs]
     checkpoint(prediction_graphs_dgl,
-               ("./dataset/" + args.dataset + "/" + args.output_prx + "/predict/dgl_prediction_graphs_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
+               ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/predict/dgl_prediction_graphs_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
     suspSubGraphs, suspicious_nodes, all_suspicious_nodes = None, None, None
     prediction_data_list_host = convert_prediction_to_torch_data(prediction_graphs_dgl,GRAPH_NAME)
     prediction_graphs_dgl= None
     print("Number of prediction samples from host", GRAPH_NAME, len(prediction_data_list_host))
-    checkpoint(prediction_data_list_host, ("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/torch_prediction/" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
+    checkpoint(prediction_data_list_host, ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/torch_prediction/" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
     prediction_data_list_host = None
     extraction_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_mem
     print("\nprocessed", GRAPH_NAME, "with", query_graph_name," in: --- %s seconds ---" % (time.time() - one_graph_time))
@@ -949,7 +949,7 @@ def main():
     query_data_list = convert_query_to_torch_data(query_graphs_dgl)
     print("processed", len(query_data_list), "query graphs")
     checkpoint(query_data_list,
-               ("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/torch_query_dataset.pt"))
+               ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/torch_query_dataset.pt"))
     if args.training:
         training_dataset = []
         testing_dataset = []
@@ -963,7 +963,7 @@ def main():
         training_dataset = training_dataset + benignSubGraphs_dgl
         benignSubGraphs_dgl = None
         checkpoint(training_dataset,
-                   ("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/tmp_dgl_training_dataset.pt"))
+                   ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/tmp_dgl_training_dataset.pt"))
 
         GRAPH_IRI = "http://grapt.org/darpa_tc3/cadets/attack_BSD_1/"
         if args.n_subgraphs:
@@ -975,7 +975,7 @@ def main():
         training_dataset = training_dataset + benignSubGraphs_dgl
         benignSubGraphs_dgl = None
         checkpoint(training_dataset,
-                   ("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/tmp_dgl_training_dataset.pt"))
+                   ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/tmp_dgl_training_dataset.pt"))
 
         GRAPH_IRI = "http://grapt.org/darpa_tc3/cadets/attack_BSD_2/"
         if args.n_subgraphs:
@@ -987,7 +987,7 @@ def main():
         benignSubGraphs_dgl = None
         print("Training Samples", len(training_dataset))
         checkpoint(training_dataset,
-                   ("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/dgl_training_dataset.pt"))
+                   ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/dgl_training_dataset.pt"))
 
         print("Training Samples", len(training_dataset))
         # Don't use any of the testing (prediction) samples in training
@@ -1003,13 +1003,13 @@ def main():
 
         print("Testing Samples", len(testing_dataset))
         checkpoint(testing_dataset,
-                   ("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/dgl_testing_dataset.pt"))
+                   ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/dgl_testing_dataset.pt"))
 
         torch_training_set, torch_testing_set = convert_to_torch_data(training_dataset, testing_dataset)
         checkpoint(torch_training_set,
-                   ("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/torch_training_dataset.pt"))
+                   ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/torch_training_dataset.pt"))
         checkpoint(torch_testing_set,
-                   ("./dataset/" + args.dataset + "/" + args.output_prx + "/raw/torch_testing_dataset.pt"))
+                   ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/torch_testing_dataset.pt"))
 
     elif(args.test_a_qg):
         print("Extracting suspicious subgraphs for",args.test_a_qg,"in PG:",args.pg_name)
