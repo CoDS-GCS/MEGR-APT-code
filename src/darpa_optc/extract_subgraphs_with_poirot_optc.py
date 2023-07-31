@@ -87,9 +87,12 @@ def label_candidate_nodes_QG_IOC(provenance_graph,query_graphs,query_graph_name)
         query_graphs_IOCs = json.load(f)
         
     if query_graph_name == "all":
-        corresponding_query_IOCs = [ioc.lower() for query_graph in query_graphs_IOCs for ioc in query_graphs_IOCs[query_graph]]
+        corresponding_query_IOCs_ips = [ioc.lower() for query_graph in query_graphs_IOCs for ioc in query_graphs_IOCs[query_graph]["ip"]]
+        corresponding_query_IOCs_files = [ioc.lower() for query_graph in query_graphs_IOCs for ioc in
+                                    query_graphs_IOCs[query_graph]["file"]]
     else:    
-        corresponding_query_IOCs = [ioc.lower() for ioc in query_graphs_IOCs[query_graph_name]]
+        corresponding_query_IOCs_ips = [ioc.lower() for ioc in query_graphs_IOCs[query_graph_name]["ip"]]
+        corresponding_query_IOCs_files = [ioc.lower() for ioc in query_graphs_IOCs[query_graph_name]["file"]]
         query_graphs = {query_graph_name:query_graphs[query_graph_name]}
     query_ips = set()
     query_names = set()
@@ -102,32 +105,31 @@ def label_candidate_nodes_QG_IOC(provenance_graph,query_graphs,query_graph_name)
                 continue
             if node_type == "FLOW":
                 try:
-                    if node_attrs["src_ip"].lower() in corresponding_query_IOCs:
+                    if node_attrs["src_ip"].lower() in corresponding_query_IOCs_ips:
                         query_ips.add(node_attrs["src_ip"].lower())
                 except:
                     continue
                 try:
-                    if node_attrs["dest_ip"].lower() in corresponding_query_IOCs:
+                    if node_attrs["dest_ip"].lower() in corresponding_query_IOCs_ips:
                         query_ips.add(node_attrs["dest_ip"].lower())
                 except:
                     continue    
             elif node_type == "FILE":
                 try:
                     name = node_attrs["file_path"].lower().split("\\")[-1].split(".")[0]
-                    if name in corresponding_query_IOCs: 
+                    if name in corresponding_query_IOCs_files:
                         query_names.add(name)
                 except:
                     continue
             elif node_type == "PROCESS" or node_type == "SHELL":
                 try:
                     name = node_attrs["image_path"].lower().split("\\")[-1].split(".")[0]
-                    if name in corresponding_query_IOCs: 
+                    if name in corresponding_query_IOCs_files:
                         query_names.add(name)
                 except:
                     continue
     print("\nQuery Ids",query_ips)
     print("\nQuery Names",query_names)
-    
 
     matched_nodes = {}
     for node_id, node_attrs in list(provenance_graph.nodes.data()):
@@ -148,15 +150,15 @@ def label_candidate_nodes_QG_IOC(provenance_graph,query_graphs,query_graph_name)
             except:
                 continue    
             if pg_src_ip or pg_dest_ip:
-                for q_id in query_ips:    
-                    if q_id == pg_src_ip or q_id == pg_dest_ip:
+                for q_ip in query_ips:
+                    if q_ip == pg_src_ip or q_ip == pg_dest_ip:
                         provenance_graph.nodes[node_id]["candidate"] = True 
-                        provenance_graph.nodes[node_id]["ioc"] = q_id
-                        if q_id in matched_nodes: 
-                            matched_nodes[q_id].append(node_id)
+                        provenance_graph.nodes[node_id]["ioc"] = q_ip
+                        if q_ip in matched_nodes:
+                            matched_nodes[q_ip].append(node_id)
                         else:
-                            matched_nodes[q_id] = []
-                            matched_nodes[q_id].append(node_id)
+                            matched_nodes[q_ip] = []
+                            matched_nodes[q_ip].append(node_id)
         elif node_type == "FILE":
             try:
                 pg_file_paths = [path.lower() for path in node_attrs["file_paths"].split("=>")]
@@ -273,18 +275,17 @@ def label_candidate_nodes_QG_all(provenance_graph,query_graph):
             except:
                 continue    
             if pg_src_ip or pg_dest_ip:
-                for q_id in query_ips:    
-                    if q_id == pg_src_ip or q_id == pg_dest_ip:
+                for q_ip in query_ips:
+                    if q_ip == pg_src_ip or q_ip == pg_dest_ip:
                         provenance_graph.nodes[node_id]["candidate"] = True 
-                        provenance_graph.nodes[node_id]["ioc"] = q_id
-                        if q_id in matched_nodes: 
-                            matched_nodes[q_id].append(node_id)
+                        provenance_graph.nodes[node_id]["ioc"] = q_ip
+                        if q_ip in matched_nodes:
+                            matched_nodes[q_ip].append(node_id)
                         else:
-                            matched_nodes[q_id] = []
-                            matched_nodes[q_id].append(node_id)
+                            matched_nodes[q_ip] = []
+                            matched_nodes[q_ip].append(node_id)
         elif node_type == "FILE":
             try:
-                
                 pg_file_paths = [path.lower() for path in node_attrs["file_paths"].split("=>")]
                 pg_file_names = [path.lower().split("\\")[-1].split(".")[0] for path in pg_file_paths]
                 pg_file_names = [name for name in pg_file_names if name]
@@ -617,18 +618,18 @@ def Extract_Random_Benign_Subgraphs(processGraph,n_subgraphs,min_nodes,max_nodes
 
 
 
-def subgraph_quality_check_per_query(subgraphs,query,min_iocs=1):
+def subgraph_quality_check_per_query(subgraphs,matched_nodes,min_iocs=1):
     covered_attacks = {}
-    with open(args.ioc_file) as f:
-        query_graphs_IOCs = json.load(f)
+    # with open(args.ioc_file) as f:
+    #     query_graphs_IOCs = json.load(f)
         
-    q_g_iocs = query_graphs_IOCs[query]
+    # q_g_iocs = query_graphs_IOCs[query]
     accepted_subgraphs = []
     for i,g in enumerate(subgraphs):
         covered_ioc = set([nodes[1]["ioc"] for nodes in g.nodes.data() if nodes[1]["candidate"]])
         covered_ioc_per_query = []
         accepted = False
-        for ioc in q_g_iocs:
+        for ioc in matched_nodes:
             if ioc.lower() in covered_ioc:
                 covered_ioc_per_query.append(ioc.lower())
         if len(set(covered_ioc_per_query)) >= min_iocs:
@@ -745,7 +746,7 @@ def process_one_graph(graph_file, query_graphs,query_name,depth, min_nodes, max_
     for i in range(1,4):
         print("\nCheck Quality for",i," IOCs of corresponding query graph")
         if i == args.min_iocs:
-            accepted_suspSubGraphs = subgraph_quality_check_per_query(suspSubGraphs,query_name,min_iocs=i)
+            accepted_suspSubGraphs = subgraph_quality_check_per_query(suspSubGraphs,matched_nodes,min_iocs=i)
             print("\nAccepted Subgraphs with ",args.min_iocs," IOCs of corresponding query graph")
             print("Number of accepted subgraph:", len(accepted_suspSubGraphs))
             if accepted_suspSubGraphs == 0:
@@ -754,7 +755,7 @@ def process_one_graph(graph_file, query_graphs,query_name,depth, min_nodes, max_
             checkpoint(accepted_suspSubGraphs,("./dataset/darpa_optc/experiments/"+args.output_prx+"/predict/nx_accepted_suspSubGraphs_"+query_name+"_in_"+graph_name +  ".pt"))
             suspSubGraphs = accepted_suspSubGraphs
         else: 
-            subgraph_quality_check_per_query(suspSubGraphs,query_name,min_iocs=i)
+            subgraph_quality_check_per_query(suspSubGraphs,matched_nodes,min_iocs=i)
             
     if len(suspSubGraphs) == 0:
         print("No subgraphs for",graph_name,"with",query_name)
