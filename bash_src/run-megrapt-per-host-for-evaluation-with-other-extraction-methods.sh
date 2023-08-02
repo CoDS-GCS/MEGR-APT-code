@@ -57,7 +57,7 @@ preprocess_graph () {
       then
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
         echo "Store output in ${output_prx} at ${date}"
-        python -u src/${dataset_folder}/variations_of_extract_subgraphs_${host}.py --deephunter-extract --ioc-file ./dataset/${dataset_name}/query_graphs_IOCs.json --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/extract_withDeepHunterMethod_${QG}_in_${pg_name}_${date}.txt
+        python -u src/${dataset_folder}/variations_of_extract_subgraphs_${host}.py --deephunter-extract --ioc-file ./dataset/${dataset_name}/query_graphs_IOCs.json --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/extract_withDeepHunterMethod_${QG}_in_${pg_name}_${date}.txt
       else
         echo "The method ${method} does not exist."
       fi

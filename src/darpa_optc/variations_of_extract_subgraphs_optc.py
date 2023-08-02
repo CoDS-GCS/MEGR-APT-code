@@ -14,6 +14,9 @@ import torch.nn.functional as F
 from torch_geometric.data import Data
 import resource
 import copy
+import dask
+from dask.distributed import Client, LocalCluster
+import dask.bag as db
 import psutil
 process = psutil.Process(os.getpid())
 
@@ -908,6 +911,9 @@ def process_one_graph_training(graph_file, query_graphs,query_name):
 def main():
     start_running_time = time.time()
     random.seed(123)
+    if args.parallel:
+        cluster = LocalCluster(n_workers=26)
+        client = Client(cluster)
     print("processing query graphs")
     query_graphs = {}
     for graph_name in glob.glob('./dataset/darpa_optc/query_graphs/*'):
