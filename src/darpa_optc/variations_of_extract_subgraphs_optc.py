@@ -821,6 +821,11 @@ def process_one_graph(graph_file, query_graphs,query_name,depth, min_nodes, max_
         matched_nodes , all_matchedNodes , processNodes = label_candidate_nodes_QG_IOC(provenance_graph,query_graphs,query_name)
     if args.explore:
         explore_graph(provenance_graph)
+    if len(all_matchedNodes) == 0:
+        print("No suspicious nodes for",graph_name,"with",query_name)
+        print("\nprocessed", graph_name, "with",query_name," in: --- %s seconds ---" % (time.time() - one_graph_time))
+        print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
+        return
     if args.IFS_extract:
         suspSubGraphs = extract_suspGraphs_influence_score(provenance_graph,matched_nodes , processNodes,min_nodes =min_nodes,max_nodes = max_nodes,influence_score =args.influence_score,max_edges=max_edges)
     elif args.deephunter_extract:
