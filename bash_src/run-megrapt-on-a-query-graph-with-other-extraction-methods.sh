@@ -12,7 +12,6 @@ predict_model () {
     ep=$7
     Threshold=$8
     echo "Predicting QG ${QG} in PG ${pg_name} with model parameters ${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}"
-    mkdir -p logs/${dataset_name}/${output_prx}
     python -u ./src/main.py --dataset ${dataset} --dataset-path ./dataset/${dataset_name}/experiments/${output_prx}/ --gnn-operator rgcn --embedding-layers ${layer} --learning-rate ${LR} --dropout ${DR} --epochs ${ep} --filters-1 ${vector1} --filters-2 ${vector2} --filters-3 ${vector3} --tensor-neurons ${vector3} --predict --predict-file ${tested_file} --log-similarity --threshold ${Threshold} --load ./model/megrapt/${dataset_name}/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}.pt > logs/${dataset_name}/${output_prx}/${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}_${QG}_in_${pg_name}_${date}.txt
     python -u ./src/main.py --dataset ${dataset} --dataset-path ./dataset/${dataset_name}/experiments/${output_prx}/ --gnn-operator rgcn --embedding-layers ${layer} --learning-rate ${LR} --dropout ${DR} --epochs ${ep} --filters-1 ${vector1} --filters-2 ${vector2} --filters-3 ${vector3} --tensor-neurons ${vector3} --predict --predict-file ${tested_file} --plot-thresholds --load ./model/megrapt/${dataset_name}/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}.pt
 
@@ -61,18 +60,22 @@ fi
 read -p "Enter the query graph name: " QG
 read -p "Enter the provenance graph name: " pg_name
 tested_file=${QG}_in_${pg_name}.pt
-read -p "Enter the Influence Score: " Influence_score
-
-
-read -p "Do you want to enter specific query graphs IOCs file (y/N)": Answer
-echo preprocessing_${host}_${output_prx}_${date}
 mkdir -p logs/${dataset_name}/${output_prx}
-if [[ "$Answer" == "y" ]]
+
+echo "Available extraction methods (poirot, deephunter)"
+read -p "Enter the extraction methods:" method
+
+if [[ "$method" == "poirot" ]]
 then
-  read -p "Enter the Query Graphs IOCs file:" QG_IOCs
-  python -u src/${dataset_folder}/extract_subgraphs_with_poirot_${host}.py --IFS-extract --influence-score ${Influence_score}  --output-prx ${output_prx} --ioc-file ./dataset/${dataset_name}/${QG_IOCs}.json --test-a-qg ${QG} --pg-name ${pg_name} > logs/${dataset_name}/${output_prx}/extract_withPoirotAlgorithm_${QG}_in_${pg_name}_${date}.txt
+  read -p "Enter the Influence Score: " Influence_score
+  echo "extract subgraphs for ${host} with ${method} method, store in ${output_prx}, Date is ${date}"
+  python -u src/${dataset_folder}/variations_of_extract_subgraphs_${host}.py --IFS-extract --influence-score ${Influence_score} --QG-all --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/extract_withPoirotAlgorithm_${QG}_in_${pg_name}_${date}.txt
+elif [[ "$method" == "deephunter" ]]
+then
+  echo "extract subgraphs for ${host} with ${method} method, store in ${output_prx}, Date is ${date}"
+  python -u src/${dataset_folder}/variations_of_extract_subgraphs_${host}.py --deephunter-extract --ioc-file ./dataset/${dataset_name}/query_graphs_IOCs.json --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/extract_withDeepHunterMethod_${QG}_in_${pg_name}_${date}.txt
 else
-  python -u src/${dataset_folder}/extract_subgraphs_with_poirot_${host}.py --IFS-extract --influence-score ${Influence_score} --QG-all --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/extract_withPoirotAlgorithm_${QG}_in_${pg_name}_${date}.txt
+  echo "The method ${method} does not exist."
 fi
 
 if [[ "$host" == "cadets" ]]

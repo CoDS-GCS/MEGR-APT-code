@@ -26,7 +26,7 @@ parser.add_argument('--max-edges-mult-qg', type=int, help='Maximum number of edg
 parser.add_argument('--max-edges-training', type=int, help='Maximum number of edges for subgraphs', default=1000)
 parser.add_argument("--test-a-qg",type=str,default=None,help="The name of the tested query graph.")
 parser.add_argument("--pg-name",type=str,default=None,help="The nae of the tested provenance graph.")
-parser.add_argument('--depth', type=int, help='Maximum depth to traverse while generating subgraphs', default=4)
+
 parser.add_argument('--min-iocs', type=int, help='Minimum number of Query Graph IOCs to accept subgraph', default=1)
 parser.add_argument('--output-prx', type=str, help='output file prefix ', default=None)
 parser.add_argument('--explore', help='Explore The Provenance Graph ',action="store_true", default=False)
@@ -37,9 +37,12 @@ parser.add_argument('--parallel', help='Encode Subgraphs in parallel',action="st
 parser.add_argument('--training', help='Prepare training set',action="store_true", default=False)
 parser.add_argument('--ioc-file', nargs="?", help='Path of Query Graph IOCs file', default="./dataset/darpa_optc/query_graphs_allQgNodes.json")
 parser.add_argument('--n-subgraphs', type=int, help='Number of Subgraph', default=200)
-parser.add_argument('--IFS-extract', help='Use Influence Score in Subgraph Extraction',action="store_true", default=False)
+parser.add_argument('--IFS-extract', help='Use Influence Score in subgraph extraction',action="store_true", default=False)
 parser.add_argument('--influence-score', type=int, help='Influence score while traversing', default=3)
 parser.add_argument('--QG-all', help='Label all matched Query Graph Nodes',action="store_true", default=False)
+parser.add_argument('--deephunter-extract', help='Use DeepHunter subgraph extraction method',action="store_true", default=False)
+parser.add_argument('--depth', type=int, help='Maximum depth to traverse while generating subgraphs', default=4)
+
 
 
 args = parser.parse_args()
@@ -461,7 +464,7 @@ def extract_suspGraphs_depth(networkx_graph,matched_ioc,matchedNodes,processNode
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
     return suspGraphs
 
-def extract_suspGraphs_influence_score(networkx_graph,matched_ioc,matchedNodes,processNodes,min_nodes = None,max_nodes = None,influence_score = 3,max_edges=1000):
+def extract_suspGraphs_influence_score(networkx_graph,matched_ioc,processNodes,min_nodes = None,max_nodes = None,influence_score = 3,max_edges=1000):
     print("Using Influence-Score-based algorithm to extract subgraphs")
     start_time = time.time()
     suspGraphs = []    
@@ -539,6 +542,94 @@ def extract_suspGraphs_influence_score(networkx_graph,matched_ioc,matchedNodes,p
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
     return suspGraphs
 
+
+def extract_suspGraphs_with_deepHunter_method(networkx_graph, matched_ioc, matchedNodes, processNodes, depth=4):
+    print("summarize provenance graph to get suspicious subgraphs ")
+    start_time = time.time()
+    seeds = [(k, n) for k, n in sorted(matched_ioc.items(), key=lambda item: len(item[1]))]
+    seed = seeds[0][0]
+    covered = set()
+    covered.add(seed)
+    print("seed node: ", seed)
+    susp = nx.MultiDiGraph()
+    suspGraphs = []
+
+    # Traverse Forward & Backward
+    def AdaptiveBFS(root, depth=None):
+        level = 0
+        visited = set()
+        currentLevel = [root]
+        while currentLevel:
+            nextLevel = set()
+            for node in currentLevel:
+                for _, nEdge in networkx_graph.out_edges(node):
+                    if (nEdge not in visited) and (nEdge in matchedNodes or nEdge in processNodes):
+                        edge_attr = networkx_graph.get_edge_data(node, nEdge).keys()
+                        for key in edge_attr:
+                            yield node, nEdge, key
+                        nextLevel.add(nEdge)
+                for pEdge, _ in networkx_graph.in_edges(node):
+                    if (pEdge not in visited) and (pEdge in matchedNodes or pEdge in processNodes):
+                        edge_attr = networkx_graph.get_edge_data(pEdge, node).keys()
+                        for key in edge_attr:
+                            yield pEdge, node, key
+                        nextLevel.add(pEdge)
+                visited.add(node)
+            if depth:
+                if (depth - level) > 0:
+                    level += 1
+                elif (depth - level) == 0:
+                    break
+                else:
+                    break
+            else:
+                currentLevel = nextLevel
+
+    # AdaptiveBFSS return one traversed subgraph
+    # susp contain the aggregation of subgraphs, it start with empty graphs, stops when it covers all IoCs
+    def ExpandSearch(seedNodes, susp, depth=None):
+        x = 0
+        for node in seedNodes:
+            x += 1
+            startNode = node
+            travNodes = []
+            travNodes = AdaptiveBFS(startNode, depth)
+            subgraphEdges = []
+            for edge in iter(travNodes):
+                subgraphEdges.append(edge)
+            subgraph = networkx_graph.edge_subgraph(subgraphEdges).copy()
+            subgraphEdges = None
+            susp = nx.compose(susp, subgraph)
+            subgraph = None
+            # print("Traversed",x,"node of ")
+            for ioc, nodes in seeds:
+                if ioc not in covered:
+                    for node in nodes:
+                        if susp.has_node(node):
+                            covered.add(ioc)
+                            continue
+            remain_nodes = [(ioc, nodes) for ioc, nodes in seeds if ioc not in covered]
+            if not remain_nodes:
+                suspGraphs.append(susp)
+                # print("Done ", x ,"node")
+            else:
+                covered.add(remain_nodes[0][0])
+                # print("next remain node: ", remain_nodes[0][0])
+                ExpandSearch(remain_nodes[0][1], susp, depth)
+        susp = None
+        return suspGraphs
+
+    suspGraphs = ExpandSearch(matched_ioc[seed], susp, depth)
+
+    print("Number of subgraphs:", len(suspGraphs))
+    if len(suspGraphs) > 0:
+        print("Average number of nodes in subgraphs:",
+              round(mean([supgraph.number_of_nodes() for supgraph in suspGraphs])))
+        print("Average number of edges in subgraphs:",
+              round(mean([supgraph.number_of_edges() for supgraph in suspGraphs])))
+    print("Extraction Memory:", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+    print("--- Extraction time %s seconds ---" % (time.time() - start_time))
+    return suspGraphs
 
 def Extract_Random_Benign_Subgraphs(processGraph,n_subgraphs,min_nodes,max_nodes,max_edges,depth = 4):
     start_time = time.time()
@@ -728,8 +819,10 @@ def process_one_graph(graph_file, query_graphs,query_name,depth, min_nodes, max_
     if args.explore:
         explore_graph(provenance_graph)
     if args.IFS_extract:
-        suspSubGraphs = extract_suspGraphs_influence_score(provenance_graph,matched_nodes , all_matchedNodes , processNodes,min_nodes =min_nodes,max_nodes = max_nodes,influence_score =args.influence_score,max_edges=max_edges)
-    else:    
+        suspSubGraphs = extract_suspGraphs_influence_score(provenance_graph,matched_nodes , processNodes,min_nodes =min_nodes,max_nodes = max_nodes,influence_score =args.influence_score,max_edges=max_edges)
+    elif args.deephunter_extract:
+        suspSubGraphs = extract_suspGraphs_with_deepHunter_method(provenance_graph, matched_nodes, all_matchedNodes, processNodes, depth=depth)
+    else:
         suspSubGraphs = extract_suspGraphs_depth(provenance_graph,matched_nodes , all_matchedNodes , processNodes,depth = depth,min_nodes = min_nodes,max_nodes = max_nodes,max_edges=max_edges)
     
     if len(suspSubGraphs) == 0:
@@ -783,7 +876,7 @@ def process_one_graph(graph_file, query_graphs,query_name,depth, min_nodes, max_
     checkpoint(prediction_data_list_host,("./dataset/darpa_optc/experiments/"+args.output_prx+"/raw/torch_prediction/"+query_name+"_in_"+graph_name+".pt"))
 
     print("\nprocessed", graph_name, "with", query_name, " in: --- %s seconds ---" % (time.time() - one_graph_time))
-    print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+    print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
     print("Number of prediction samples from host", graph_name, len(prediction_data_list_host))
     prediction_data_list_host = None
     return 
@@ -815,10 +908,6 @@ def process_one_graph_training(graph_file, query_graphs,query_name):
 def main():
     start_running_time = time.time()
     random.seed(123)
-    if args.parallel:
-        cluster = LocalCluster(n_workers=26)
-        client = Client(cluster)  
-    
     print("processing query graphs")
     query_graphs = {}
     for graph_name in glob.glob('./dataset/darpa_optc/query_graphs/*'):

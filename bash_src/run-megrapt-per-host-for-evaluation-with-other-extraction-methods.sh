@@ -6,7 +6,6 @@ echo "The output forlder is: ${output_prx}"
 
 echo "Available Hosts (cadets, theia, trace, optc)"
 read -p "Enter the host name:" host
-read -p "Enter the Influence Score: " Influence_score
 
 if [[ "$host" == "cadets" ]]
 then
@@ -45,21 +44,23 @@ fi
 preprocess_graph () {
     QG=$1
     pg_name=$2
-    specific_QG=$3
-    QG_IOCs=$4
+    QG_IOCs=$3
     sleep 3
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
-    
+      if [[ "$method" == "poirot" ]]
+      then
+        read -p "Enter the Influence Score: " Influence_score
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
         echo "Store output in ${output_prx} at ${date}"
-        
-        if [[ "$specific_QG" == "y" ]]
-        then
-          echo "Query Graph Folder IOCs ${QG_IOCs}"
-          python -u src/${dataset_folder}/extract_subgraphs_with_poirot_${host}.py --IFS-extract --influence-score ${Influence_score}  --output-prx ${output_prx} --ioc-file ./dataset/${dataset_name}/${QG_IOCs}.json --test-a-qg ${QG} --pg-name ${pg_name} > logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/extract_withPoirotAlgorithm_${QG}_in_${pg_name}_${date}.txt
-        else
-          python -u src/${dataset_folder}/extract_subgraphs_with_poirot_${host}.py --IFS-extract --influence-score ${Influence_score} --QG-all --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/extract_withPoirotAlgorithm_${QG}_in_${pg_name}_${date}.txt
-        fi
+        python -u src/${dataset_folder}/variations_of_extract_subgraphs_${host}.py --IFS-extract --influence-score ${Influence_score} --QG-all --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/extract_withPoirotAlgorithm_${QG}_in_${pg_name}_${date}.txt
+      elif [[ "$method" == "deephunter" ]]
+      then
+        echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
+        echo "Store output in ${output_prx} at ${date}"
+        python -u src/${dataset_folder}/variations_of_extract_subgraphs_${host}.py --deephunter-extract --ioc-file ./dataset/${dataset_name}/query_graphs_IOCs.json --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/extract_withDeepHunterMethod_${QG}_in_${pg_name}_${date}.txt
+      else
+        echo "The method ${method} does not exist."
+      fi
     else
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
@@ -73,45 +74,41 @@ then
     read -p "Enter the Threshold": Threshold
 else  
     Threshold=0.4
-    
-    read -p "Do you want to enter specific query graphs IOCs file (y/N)": specific_QG
-    if [[ "$specific_QG" == "y" ]]
-    then
-    read -p "Enter the Query Graphs IOCs file:" QG_IOCs
-    fi
+    echo "Available extraction methods (poirot, deephunter)"
+    read -p "Enter the extraction methods:" method
     if [[ "$host" == "cadets" ]]
     then
-        preprocess_graph BSD_1 attack_BSD_1 ${specific_QG} ${QG_IOCs}
-        preprocess_graph BSD_2 attack_BSD_2 ${specific_QG} ${QG_IOCs} 
-        preprocess_graph BSD_3 attack_BSD_3_4 ${specific_QG} ${QG_IOCs}
-        preprocess_graph BSD_4 attack_BSD_3_4 ${specific_QG} ${QG_IOCs}
+        preprocess_graph BSD_1 attack_BSD_1 ${QG_IOCs}
+        preprocess_graph BSD_2 attack_BSD_2 ${QG_IOCs}
+        preprocess_graph BSD_3 attack_BSD_3_4 ${QG_IOCs}
+        preprocess_graph BSD_4 attack_BSD_3_4 ${QG_IOCs}
         for Query in {BSD_1,BSD_2,BSD_3,BSD_4}; do 
-        preprocess_graph ${Query} benign_BSD ${specific_QG} ${QG_IOCs}
+        preprocess_graph ${Query} benign_BSD ${QG_IOCs}
         done
     elif [[ "$host" == "theia" ]]
     then
-        preprocess_graph Linux_1 attack_linux_1_2 ${specific_QG} ${QG_IOCs}
-        preprocess_graph Linux_2 attack_linux_1_2 ${specific_QG} ${QG_IOCs}
+        preprocess_graph Linux_1 attack_linux_1_2 ${QG_IOCs}
+        preprocess_graph Linux_2 attack_linux_1_2 ${QG_IOCs}
         for Query in {Linux_1,Linux_2}; do 
-            preprocess_graph ${Query} benign_theia ${specific_QG} ${QG_IOCs}
+            preprocess_graph ${Query} benign_theia ${QG_IOCs}
         done
     elif [[ "$host" == "trace" ]]
     then
-        preprocess_graph Linux_3 attack_linux_3 ${specific_QG} ${QG_IOCs}
-        preprocess_graph Linux_4 attack_linux_4 ${specific_QG} ${QG_IOCs}
+        preprocess_graph Linux_3 attack_linux_3 ${QG_IOCs}
+        preprocess_graph Linux_4 attack_linux_4 ${QG_IOCs}
         for Query in {Linux_3,Linux_4}; do 
-            preprocess_graph ${Query} benign_trace ${specific_QG} ${QG_IOCs}
+            preprocess_graph ${Query} benign_trace ${QG_IOCs}
         done
     elif [[ "$host" == "optc" ]]
     then
-        preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${specific_QG} ${QG_IOCs}
-        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${specific_QG} ${QG_IOCs}
-        preprocess_graph Malicious_Upgrade attack_SysClient0051 ${specific_QG} ${QG_IOCs}
-        preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${specific_QG} ${QG_IOCs}
+        preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${QG_IOCs}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${QG_IOCs}
+        preprocess_graph Malicious_Upgrade attack_SysClient0051 ${QG_IOCs}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${QG_IOCs}
         
         for PG in {benign_SysClient0201,benign_SysClient0501,benign_SysClient0051,benign_SysClient0358}; do
             for Query in {Plain_PowerShell_Empire,Custom_PowerShell_Empire,Malicious_Upgrade}; do
-                preprocess_graph ${Query} ${PG} ${specific_QG} ${QG_IOCs}
+                preprocess_graph ${Query} ${PG} ${QG_IOCs}
             done
         done
     else
