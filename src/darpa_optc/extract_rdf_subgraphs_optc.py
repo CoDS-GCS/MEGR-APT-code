@@ -15,7 +15,7 @@ import io
 import torch
 import torch.nn.functional as F
 from torch_geometric.data import Data
-import resource
+from resource import *
 import copy
 import dask
 from dask.distributed import Client, LocalCluster
@@ -50,6 +50,17 @@ parser.add_argument("--test-a-qg",type=str,default=None,help="The name of the te
 parser.add_argument("--pg-name",type=str,default=None,help="The nae of the tested provenance graph.")
 parser.add_argument('--database-name', type=str, help='Stardog database name', default='optc')
 args = parser.parse_args()
+
+def print_memory_cpu_usage(message=None):
+    print(message)
+    print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
+    print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
+    print('The CPU usage is: ', psutil.cpu_percent(4))
+    load1, load5, load15 = psutil.getloadavg()
+    cpu_usage = (load15 / os.cpu_count()) * 100
+    print("The CPU usage is : ", cpu_usage)
+    print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
+          psutil.virtual_memory().percent)
 
 
 def read_json_graph(filename):
@@ -482,7 +493,7 @@ WHERE {
 
 
 def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
-    start_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     start_time = time.time()
     with open(args.ioc_file) as f:
         query_graphs_IOCs = json.load(f)
@@ -519,6 +530,7 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     conn.update(Label_Suspicious_Nodes)
     print("labelling Suspicious nodes in: --- %s seconds ---" % (time.time() - start_time))
     print("Memory usage : ", process.memory_info().rss / (1024 ** 2), "MB")
+    print_memory_cpu_usage("Labelling candidate nodes")
     if args.training:
         return
     return suspicious_nodes, all_suspicious_nodes
@@ -648,7 +660,7 @@ def Traverse_rdf(params):
 
 def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_suspicious_nodes):
     start_time = time.time()
-    start_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     suspGraphs = []
     # suspGraphs_iterations = {}
     considered_per_ioc = {}
@@ -707,8 +719,9 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
         print("Average number of edges in subgraphs:",
               round(mean([supgraph.number_of_edges() for supgraph in suspGraphs])))
     print("Extract suspicious subgraphs in --- %s seconds ---" % (time.time() - start_time))
-    construct_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_mem
+    construct_mem = getrusage(RUSAGE_SELF).ru_maxrss - start_mem
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
+    print_memory_cpu_usage()
     return suspGraphs
 
 
@@ -762,6 +775,7 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
           round(mean([supgraph.number_of_edges() for supgraph in benignSubGraphs])))
     print("--- %s seconds ---" % (time.time() - start_time))
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
+    print_memory_cpu_usage()
     benign_nodes = None
     return benignSubGraphs
 
@@ -870,7 +884,7 @@ def convert_to_torch_data(training_graphs, testing_graphs):
 
 
 def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
-    start_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     one_graph_time = time.time()
     global max_edges,max_nodes
     query_pattern = '\"' + query_graph_name + '\"'
@@ -888,6 +902,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     suspSubGraphs = extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes,
                                                                        all_suspicious_nodes)
@@ -896,6 +911,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     checkpoint(suspSubGraphs,
                (
@@ -919,6 +935,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     print("Encoding prediction subgraphs")
     prediction_graphs_dgl = [encode_for_RGCN(g) for g in suspSubGraphs]
@@ -932,11 +949,12 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     checkpoint(prediction_data_list_host, (
                 "./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/raw/torch_prediction/" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
     prediction_data_list_host = None
-    extraction_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_mem
+    extraction_mem = getrusage(RUSAGE_SELF).ru_maxrss - start_mem
     print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
           " in: --- %s seconds ---" % (time.time() - one_graph_time))
     print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
     print("\n Extraction Memory usage: ", extraction_mem / 1024, "MB (based on resource - ru_maxrss)")
+    print_memory_cpu_usage("Extraction")
     return
 
     

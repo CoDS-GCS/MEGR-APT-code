@@ -82,21 +82,7 @@ train_model () {
 }
 
 
-if [[ "$host" == "cadets" ]]
-then
-  train_model 2 0.001 128 92 64 0 1000 rgcn
-elif [[ "$host" == "theia" ]]
-then
-  train_model 2 0.001 64 64 32 0.5 1000 rgcn
-elif [[ "$host" == "trace" ]]
-then
-  train_model 1 0.0001 128 92 64 0 1000 rgcn
-elif [[ "$host" == "optc" ]]
-then
-  train_model 1 0.0001 128 92 64 0 1000 rgcn
-else
-  echo "Undefined dataset."
-fi
+
 
 read -p "Do you want to perform Hyper-parameters (y/N)": skip_hyper
 if [[ "$skip_hyper" == "y" ]]; then
@@ -110,5 +96,21 @@ if [[ "$skip_hyper" == "y" ]]; then
     done
   done
 else
-  echo "Done Training pipeline"
+  if [[ "$host" == "cadets" ]]
+  then
+    train_model 2 0.001 128 92 64 0 1000 rgcn
+  elif [[ "$host" == "theia" ]]
+  then
+    train_model 2 0.001 64 64 32 0.5 1000 rgcn
+  elif [[ "$host" == "trace" ]]
+  then
+    train_model 1 0.0001 128 92 64 0 1000 rgcn
+  elif [[ "$host" == "optc" ]]
+  then
+    train_model 1 0.0001 128 92 64 0 1000 rgcn
+  else
+    echo "Undefined dataset."
+  fi
 fi
+
+echo "Done Training pipeline"

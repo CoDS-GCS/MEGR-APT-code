@@ -3,14 +3,14 @@ import random
 import numpy as np
 import pickle
 import time
-import resource
+from resource import *
 import torch.nn.functional as F
 from tqdm import tqdm, trange
 from scipy.stats import spearmanr, kendalltau
 import glob
-
+from sklearn import metrics
 from layers import AttentionModule, TensorNetworkModule, DiffPool
-from utils import calculate_ranking_correlation, calculate_prec_at_k, gen_pairs, ensure_dir, checkpoint
+from utils import calculate_ranking_correlation, calculate_prec_at_k, gen_pairs, ensure_dir, checkpoint, print_memory_cpu_usage
 from darpaDataset import DARPADataset
 from dataset_config import get_ground_cases
 
@@ -280,7 +280,8 @@ class MEGRAPTTrainer(object):
         :param args: Arguments object.
         """
         self.start_running_time = time.time()
-        self.current_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        self.current_mem = getrusage(RUSAGE_SELF).ru_maxrss
+        print_memory_cpu_usage("Initial memory usage")
         self.args = args
         if self.args.predict:
             self.root_file = self.args.dataset_path
@@ -300,7 +301,8 @@ class MEGRAPTTrainer(object):
             print("Number of edge labels",self.number_of_edge_labels)                 
         else:
             self.process_dataset()
-        self.mem_loading_dataset = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - self.current_mem
+        self.mem_loading_dataset = getrusage(RUSAGE_SELF).ru_maxrss - self.current_mem
+        print_memory_cpu_usage("Loading")
         self.setup_model()
 
 
@@ -329,19 +331,7 @@ class MEGRAPTTrainer(object):
         Downloading and processing dataset.
         """
         print("\nPreparing dataset.\n")
-        if self.args.dataset == "ATLAS":
-            if self.args.dataset_path:
-                self.root_file = self.args.dataset_path
-            elif self.args.gnn_operator == "gcn":
-                self.root_file ="./dataset/atlas/gcn_exp/"
-            elif self.args.gnn_operator == "rgcn":
-                self.root_file = "./dataset/atlas/rgcn_exp/"
-            
-            self.training_graphs = ATLASDataset(self.root_file, train=True)
-            self.testing_graphs = ATLASDataset(self.root_file, train=False)
-            self.nged_matrix = self.training_graphs.norm_ged
-            self.real_data_size = self.nged_matrix.size(0)
-        elif self.args.dataset == "DARPA_OPTC" or self.args.dataset == "DARPA_CADETS" or self.args.dataset == "DARPA_THEIA" or self.args.dataset == "DARPA_TRACE":
+        if self.args.dataset == "DARPA_OPTC" or self.args.dataset == "DARPA_CADETS" or self.args.dataset == "DARPA_THEIA" or self.args.dataset == "DARPA_TRACE":
             self.root_file = self.args.dataset_path
             self.training_graphs = DARPADataset(self.root_file, train=True)
             self.testing_graphs = DARPADataset(self.root_file, train=False)
@@ -350,7 +340,8 @@ class MEGRAPTTrainer(object):
             print("Training set:",len(self.training_graphs),"\nTesting set:",len(self.testing_graphs))
             print("Training samples: ",(~torch.isinf(self.nged_matrix[0:len(self.training_graphs)])).float().sum())
             print("Testing Samples: ", (~torch.isinf(self.nged_matrix[len(self.training_graphs):])).float().sum())   
-            
+        else:
+            print("Undefined dataset")
     
         self.number_of_labels = self.training_graphs.num_features
         self.number_of_edge_labels = self.training_graphs.num_relations
@@ -435,8 +426,8 @@ class MEGRAPTTrainer(object):
             weight_decay=self.args.weight_decay,
         )
         self.model.train()
-        self.mem_train = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - self.mem_loading_dataset - self.current_mem
-
+        self.mem_train = getrusage(RUSAGE_SELF).ru_maxrss - self.mem_loading_dataset - self.current_mem
+        print_memory_cpu_usage("Training")
         epochs = trange(self.args.epochs, leave=True, desc="Epoch")
         loss_list = []
         loss_list_test = []
@@ -547,67 +538,63 @@ class MEGRAPTTrainer(object):
         print("\n\nsample prediction.\n")
         self.prediction_time = time.time()
         self.model.eval()
-        if self.args.dataset == "ATLAS":            
-            self.query_graphs = ATLASDataset(self.root_file, query=True)
-            print("Number of query graphs", len(self.query_graphs))
-            self.predict_graphs = ATLASDataset(self.root_file,predict=True)
-            print("Number of predict graphs", len(self.predict_graphs))
-        else:    
-            if(self.args.predict_file):
-                self.predict_graphs = DARPADataset(self.root_file,predict=True,file_name=self.args.predict_file)
-                if self.predict_graphs[0]==None:
-                    raised_alarms = np.array([])
-                    print("No suspicious subgraphs from that case")
-                else: 
-                    print("Number of predict graphs", len(self.predict_graphs))
-                    query_graph_name = self.args.predict_file.split("_in_")[0]
-                    all_query_graphs = DARPADataset(self.root_file, query=True)
-                    if query_graph_name != "all":
-                        self.query_graphs = [query for query in all_query_graphs if query.g_name == query_graph_name]
-                    print("Number of query graphs", len(self.query_graphs))
-                    similarity_matrix = np.empty((len(self.query_graphs) , len(self.predict_graphs)))
-                    for i, g in enumerate(self.query_graphs):
-                        source_batch = Batch.from_data_list([g] * len(self.predict_graphs))
-                        target_batch = Batch.from_data_list(self.predict_graphs)
-                        data = self.transform((source_batch, target_batch), predict=True)
-                        prediction = self.model(data)
-                        similarity_matrix[i] = prediction.detach().numpy()
-                    if self.args.log_similarity:    
-                        checkpoint(similarity_matrix,(self.root_file+"predict/"+self.args.load.split("/")[-1].replace(".pt","") + "_similarity/similarity_matrix_"+self.args.predict_file))
-                    Highest_index = np.argmax(similarity_matrix)
-                    print("\nHighest similarity: ", round(np.amax(similarity_matrix),4))
-                    print("The highest similarity subgraph is: ",self.predict_graphs[Highest_index])
-                    raised_alarms = np.where(similarity_matrix > self.args.threshold)[1]
-                    
-                if raised_alarms.size == 0:
-                    print("\nNone of subgraphs passed the threshold")
-                else:
-                    print("Number of subgraphs passed the threshold:", raised_alarms.size)
-                    
-            if(self.args.predict_folder):
-                ground_cases = get_ground_cases(self.args.dataset,self.args.similar_attack)
+        if(self.args.predict_file):
+            self.predict_graphs = DARPADataset(self.root_file,predict=True,file_name=self.args.predict_file)
+            if self.predict_graphs[0]==None:
+                raised_alarms = np.array([])
+                print("No suspicious subgraphs from that case")
+            else:
+                print("Number of predict graphs", len(self.predict_graphs))
+                query_graph_name = self.args.predict_file.split("_in_")[0]
                 all_query_graphs = DARPADataset(self.root_file, query=True)
-                self.tp,self.tn,self.fp,self.fn = 0,0,0,0
-                for self.predict_file in ground_cases:   
-                    predict_file_time = time.time()
-                    print("\nProcessing :",self.predict_file)
-                    self.predict_graphs = DARPADataset(self.root_file,predict=True,file_name=self.predict_file)
-                    query_graph_name = self.predict_file.split("_in_")[0]
-                    all_query_graphs = DARPADataset(self.root_file, query=True)
-                    if query_graph_name != "all":
-                        self.query_graphs = [query for query in all_query_graphs if query.g_name == query_graph_name]
+                if query_graph_name != "all":
+                    self.query_graphs = [query for query in all_query_graphs if query.g_name == query_graph_name]
+                print("Number of query graphs", len(self.query_graphs))
+                similarity_matrix = np.empty((len(self.query_graphs) , len(self.predict_graphs)))
+                for i, g in enumerate(self.query_graphs):
+                    source_batch = Batch.from_data_list([g] * len(self.predict_graphs))
+                    target_batch = Batch.from_data_list(self.predict_graphs)
+                    data = self.transform((source_batch, target_batch), predict=True)
+                    prediction = self.model(data)
+                    similarity_matrix[i] = prediction.detach().numpy()
+                if self.args.log_similarity:
+                    checkpoint(similarity_matrix,(self.root_file+"predict/"+self.args.load.split("/")[-1].replace(".pt","") + "_similarity/similarity_matrix_"+self.args.predict_file))
+                Highest_index = np.argmax(similarity_matrix)
+                print("\nHighest similarity: ", round(np.amax(similarity_matrix),4))
+                print("The highest similarity subgraph is: ",self.predict_graphs[Highest_index])
+                raised_alarms = np.where(similarity_matrix > self.args.threshold)[1]
+
+            if raised_alarms.size == 0:
+                print("\nNone of subgraphs passed the threshold")
+            else:
+                print("Number of subgraphs passed the threshold:", raised_alarms.size)
+
+        if(self.args.predict_folder):
+            ground_cases, y_true = get_ground_cases(self.args.dataset,self.args.similar_attack)
+            all_query_graphs = DARPADataset(self.root_file, query=True)
+            self.tp,self.tn,self.fp,self.fn = 0,0,0,0
+            self.max_score = []
+            for self.predict_file in ground_cases:
+                predict_file_time = time.time()
+                print("\nProcessing :",self.predict_file)
+                self.predict_graphs = DARPADataset(self.root_file,predict=True,file_name=self.predict_file)
+                query_graph_name = self.predict_file.split("_in_")[0]
+                all_query_graphs = DARPADataset(self.root_file, query=True)
+                if query_graph_name != "all":
+                    self.query_graphs = [query for query in all_query_graphs if query.g_name == query_graph_name]
+                    self.predict_pairs()
+                else:
+                    temp_name = self.predict_file
+                    for query_graph in all_query_graphs:
+                        self.query_graphs = [query_graph]
+                        self.predict_file = temp_name.replace("all",query_graph.g_name)
                         self.predict_pairs()
-                    else:
-                        temp_name = self.predict_file
-                        for query_graph in all_query_graphs:
-                            self.query_graphs = [query_graph]
-                            self.predict_file = temp_name.replace("all",query_graph.g_name)
-                            self.predict_pairs()
-                    print("\nProcessed :",self.predict_file,"in %s seconds ---" % (time.time() - predict_file_time))
-                    self.mem_match = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss  - self.current_mem
-                    print("Memory usage to match the query graph: %s"% self.mem_match," KB")
-                    print("**************************************************************")
-                self.print_predict_evaluation_metrics()
+                print("\nProcessed :",self.predict_file,"in %s seconds ---" % (time.time() - predict_file_time))
+                self.mem_match = getrusage(RUSAGE_SELF).ru_maxrss  - self.current_mem
+                print_memory_cpu_usage("match the query graph")
+                print("Memory usage to match the query graph: %s"% self.mem_match," KB")
+                print("**************************************************************")
+            self.print_predict_evaluation_metrics(y_true,self.max_score)
                 
         print("\n---Total Prediction Time : %s seconds ---" % (time.time() - self.prediction_time))    
 
@@ -630,6 +617,7 @@ class MEGRAPTTrainer(object):
                 checkpoint(similarity_matrix,(self.root_file+"predict/"+self.args.load.split("/")[-1].replace(".pt","") + "_similarity/similarity_matrix_"+self.predict_file))
             Highest_index = np.argmax(similarity_matrix)
             print("\nHighest similarity: ", round(np.amax(similarity_matrix),4))
+            self.max_score.append(round(np.amax(similarity_matrix),4))
             print("The highest similarity subgraph is: ",self.predict_graphs[Highest_index])
 
             raised_alarms = np.where(similarity_matrix > self.args.threshold)[1]
@@ -723,7 +711,8 @@ class MEGRAPTTrainer(object):
         self.prec_at_10 = np.mean(prec_at_10_list).item()
         self.prec_at_20 = np.mean(prec_at_20_list).item()
         self.model_error = np.mean(scores).item()
-        self.mem_evaluate = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - self.mem_loading_dataset - self.current_mem
+        self.mem_evaluate = getrusage(RUSAGE_SELF).ru_maxrss - self.mem_loading_dataset - self.current_mem
+        print_memory_cpu_usage("Evaluation")
         self.print_evaluation()
         
         
@@ -744,26 +733,35 @@ class MEGRAPTTrainer(object):
         print("Memory usage to load data: %s"% self.mem_loading_dataset," KB") 
         print("Memory usage to train the model: %s"% self.mem_train," KB") 
         print("Memory usage to evaluate the model: %s"% self.mem_evaluate," KB") 
-        print("\n",resource.getrusage(resource.RUSAGE_SELF))
+        print("\n",getrusage(RUSAGE_SELF))
+        print_memory_cpu_usage("Final memory usage")
     
     
-    def print_predict_evaluation_metrics(self):
+    def print_predict_evaluation_metrics(self,y_true,max_score):
         if (self.tp + self.fp) == 0:
             precision = None
         else:
             precision = self.tp / (self.tp + self.fp)
         if (self.tp + self.fn) == 0:
             recall = None
+            tpr = None
         else:
             recall = self.tp / (self.tp + self.fn)
+            tpr = self.tp / (self.tp + self.fn)
         accuracy = (self.tp + self.tn) / (self.tp + self.tn + self.fp + self.fn)
         if not precision or not recall or (precision + recall) == 0:
             f_measure = None
         else:
             f_measure = 2 * (precision * recall) / (precision + recall)
-        print("\n************************************************************")  
+        if (self.fp + self.tn) == 0:
+            fpr = None
+        else:
+            fpr = self.fp / (self.fp + self.tn)
+        fpr_lst, tpr_lst, _ = metrics.roc_curve(y_true, max_score)
+        auc = metrics.auc(fpr_lst, tpr_lst)
+        print("\n************************************************************")
         print("\nThreshold is:",self.args.threshold)
         print("TP: {}\tTN: {}\tFP: {}\tFN: {}".format(self.tp, self.tn, self.fp, self.fn))
         print("Accuracy: {}\tPrecision: {}\tRecall: {}\tF-1: {}".format(accuracy, precision, recall, f_measure))
-        
+        print("TPR: {}\tFPR: {}\tAUC: {}".format(tpr, fpr, auc))
         print("************************************************************\n")   

@@ -63,45 +63,68 @@ def get_ground_cases(dataset, similar_attack=False):
                         "Malicious_Upgrade_in_benign_SysClient0501.pt",
                         "Custom_PowerShell_Empire_in_benign_SysClient0501.pt",
                         "Custom_PowerShell_Empire_in_benign_SysClient0201.pt"]
+            y_true = [1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0]
         else:
             ground_cases = []
+            y_true = []
             for qg in ["Plain_PowerShell_Empire","Custom_PowerShell_Empire","Malicious_Upgrade"]:
                 for pg in ["attack_SysClient0201","attack_SysClient0501","attack_SysClient0051","benign_SysClient0201","benign_SysClient0501","benign_SysClient0051","benign_SysClient0358"]:
                     case_name = qg + "_in_" + pg + ".pt"
                     ground_cases.append(case_name)
+                    if "attack" in pg:
+                        y_true.append(1)
+                    else:
+                        y_true.append(0)
 
     elif dataset == "DARPA_CADETS":
         if not similar_attack:
-            ground_cases = ["BSD_4_in_benign_BSD.pt", "BSD_3_in_benign_BSD.pt", "BSD_4_in_attack_BSD_3_4.pt",
-                            "BSD_3_in_attack_BSD_3_4.pt", "BSD_2_in_attack_BSD_2.pt", "BSD_1_in_attack_BSD_1.pt",
-                            "BSD_1_in_benign_BSD.pt", "BSD_2_in_benign_BSD.pt"]
+            ground_cases = ["BSD_1_in_attack_BSD_1.pt", "BSD_2_in_attack_BSD_2.pt","BSD_3_in_attack_BSD_3_4.pt","BSD_4_in_attack_BSD_3_4.pt",
+                            "BSD_1_in_benign_BSD.pt","BSD_2_in_benign_BSD.pt","BSD_3_in_benign_BSD.pt","BSD_4_in_benign_BSD.pt"]
+            y_true = [1,1,1,1,0,0,0,0]
         else:
             ground_cases = []
+            y_true = []
             for qg in ["BSD_1","BSD_2","BSD_3","BSD_4"]:
                 for pg in ["attack_BSD_1","attack_BSD_2","attack_BSD_3_4","benign_BSD"]:
                     case_name = qg + "_in_" + pg + ".pt"
                     ground_cases.append(case_name)
+                    if "attack" in pg:
+                        y_true.append(1)
+                    else:
+                        y_true.append(0)
 
     elif dataset == "DARPA_THEIA":
         if not similar_attack:
             ground_cases = ["Linux_1_in_attack_linux_1_2.pt", "Linux_2_in_attack_linux_1_2.pt",
                         "Linux_1_in_benign_theia.pt", "Linux_2_in_benign_theia.pt"]
+            y_true = [1,1,0,0]
         else:
             ground_cases = []
+            y_true = []
             for qg in ["Linux_1","Linux_2"]:
                 for pg in ["attack_linux_1_2","benign_theia"]:
                     case_name = qg + "_in_" + pg + ".pt"
                     ground_cases.append(case_name)
+                    if "attack" in pg:
+                        y_true.append(1)
+                    else:
+                        y_true.append(0)
     elif dataset == "DARPA_TRACE":
         if not similar_attack:
-            ground_cases = ["Linux_3_in_benign_trace.pt", "Linux_4_in_benign_trace.pt",
-                        "Linux_4_in_attack_linux_4.pt", "Linux_3_in_attack_linux_3.pt"]
+            ground_cases = ["Linux_3_in_attack_linux_3.pt","Linux_4_in_attack_linux_4.pt" ,
+                            "Linux_3_in_benign_trace.pt", "Linux_4_in_benign_trace.pt"]
+            y_true = [1, 1, 0, 0]
         else:
             ground_cases = []
+            y_true =[]
             for qg in ["Linux_3","Linux_4"]:
                 for pg in ["attack_linux_3","attack_linux_4","benign_trace"]:
                     case_name = qg + "_in_" + pg + ".pt"
                     ground_cases.append(case_name)
+                    if "attack" in pg:
+                        y_true.append(1)
+                    else:
+                        y_true.append(0)
     else:
         print("Undefined dataset")
-    return ground_cases
+    return ground_cases,y_true
