@@ -603,6 +603,7 @@ class MEGRAPTTrainer(object):
         if self.predict_graphs[0]==None:
             raised_alarms = np.array([])
             print("No suspicious subgraphs from that case")
+            self.max_score.append(0)
         else:    
             print("Number of predict graphs", len(self.predict_graphs))
             print("Query graph:", self.query_graphs[0].g_name)
