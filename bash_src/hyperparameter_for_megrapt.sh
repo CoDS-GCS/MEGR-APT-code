@@ -2,6 +2,7 @@
 date=$(date +'%d_%m_%Y') 
 output_prx=Temp
 read -p "Enter the experiment folder name:" output_prx
+read -p "Enter the training experiment folder name:" training_prx
 echo "The output forlder is: ${output_prx}"
 
 echo "Available Hosts (cadets, theia, trace, optc)"
@@ -59,6 +60,19 @@ predict_model () {
 
 }
 
+train_model () {
+    layer=$1
+    LR=$2
+    vector1=$3
+    vector2=$4
+    vector3=$5
+    DR=$6
+    ep=$7
+    gnn=$8
+    echo "Training ${dataset_name}_${layer}${gnn}_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}"
+    mkdir -p model/${dataset_name}/hyperparameter/
+    python -u ./src/main.py --dataset ${dataset} --dataset-path ./dataset/${dataset_name}/experiments/${training_prx}/ --gnn-operator ${gnn} --embedding-layers ${layer} --learning-rate ${LR} --dropout ${DR} --epochs ${ep} --plot --filters-1 ${vector1} --filters-2 ${vector2} --filters-3 ${vector3} --tensor-neurons ${vector3} --save ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layer}${gnn}_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}.pt > logs/${dataset_name}/hyperparameter/Training_${training_prx}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}_${date}.txt
+}
 
 read -p "Do you want to perform Hyper-parameters (y/N)": skip_hyper
 if [[ "$skip_hyper" == "y" ]]; then
@@ -66,8 +80,23 @@ if [[ "$skip_hyper" == "y" ]]; then
   for layers in {1,2};do
     for learning_rate in {0.001,0.0001,0.01};do
         for dropout in {0,0.5};do
-          predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
-          predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
+          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_128-92-64_${ep}.pt ]
+          then
+            train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
+          fi
+          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_128-92-64_${ep}_TH${Threshold}_${output_prx}_${date}.txt ]
+          then
+            predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
+          fi
+
+          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_64-64-32_${ep}.pt ]
+          then
+            train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
+          fi
+          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_64-64-32_${ep}_TH${Threshold}_${output_prx}_${date}.txt ]
+          then
+            predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
+          fi
         done
     done
   done
