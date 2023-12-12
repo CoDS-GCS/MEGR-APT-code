@@ -55,12 +55,13 @@ def print_memory_cpu_usage(message=None):
     print(message)
     print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
     print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
-    print('The CPU usage is: ', psutil.cpu_percent(4))
+    print('The CPU usage is (per process, interval 4): ', psutil.Process(os.getpid()).cpu_percent(0))
     load1, load5, load15 = psutil.getloadavg()
     cpu_usage = (load15 / os.cpu_count()) * 100
     print("The CPU usage is : ", cpu_usage)
     print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
           psutil.virtual_memory().percent)
+    return
 
 
 def read_json_graph(filename):
@@ -994,6 +995,9 @@ def main():
         process_one_graph(GRAPH_IRI, sparql_queries, args.test_a_qg)
 
     print("---Total Running Time for", args.dataset, "host is: %s seconds ---" % (time.time() - start_running_time))
+    io_counters = process.io_counters()
+    print("IOPS (over total time): ", (io_counters[0] + io_counters[1]) / (time.time() - start_running_time))
+    print("I/O counters", io_counters)
     if args.parallel:
         release_memory(client)
 

@@ -20,9 +20,6 @@ import dask.bag as db
 import psutil
 process = psutil.Process(os.getpid())
 from resource import *
-# from iometrics import NetworkMetrics, DiskMetrics
-# disk = DiskMetrics()
-process = psutil.Process()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
