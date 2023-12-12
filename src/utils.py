@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import os,psutil
 from resource import *
 import time
-process = psutil.Process()
+process = psutil.Process(os.getpid())
 
 def ensure_dir(file_path):
     write_time =time.time()
