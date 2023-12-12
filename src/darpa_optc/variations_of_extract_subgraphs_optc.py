@@ -19,7 +19,10 @@ from dask.distributed import Client, LocalCluster
 import dask.bag as db
 import psutil
 process = psutil.Process(os.getpid())
-
+from resource import *
+# from iometrics import NetworkMetrics, DiskMetrics
+# disk = DiskMetrics()
+process = psutil.Process()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
@@ -50,25 +53,50 @@ parser.add_argument('--depth', type=int, help='Maximum depth to traverse while g
 
 args = parser.parse_args()
 print(args)
-
-
+iops_lst = []
+def print_memory_cpu_usage(message=None):
+    print(message)
+    print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
+    print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
+    print('The CPU usage is: ', psutil.cpu_percent(4))
+    load1, load5, load15 = psutil.getloadavg()
+    cpu_usage = (load15 / os.cpu_count()) * 100
+    print("The CPU usage is : ", cpu_usage)
+    print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
+          psutil.virtual_memory().percent)
+    return
 def read_json_graph(filename):
+    read_time = time.time()
     with open(filename) as f:
         js_graph = json.load(f)
+    io_counters = process.io_counters()
+    iops = (io_counters[0] + io_counters[1]) / (time.time() - read_time)
+    iops_lst.append(iops)
+    print("IOPS (over I/O time) : ", iops)
     return json_graph.node_link_graph(js_graph)
 
 
 def ensure_dir(file_path):
+    write_time = time.time()
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
+    io_counters = process.io_counters()
+    iops = (io_counters[0] + io_counters[1]) / (time.time() - write_time)
+    iops_lst.append(iops)
+    print("IOPS (over I/O time): ", iops)
+    return
 
 
 def checkpoint(data, file_path):
+    write_time = time.time()
     ensure_dir(file_path)
     torch.save(data,file_path)
-#     with open(file_name, 'wb') as f:
-#         pickle.dump(data, f)
+    io_counters = process.io_counters()
+    iops = (io_counters[0] + io_counters[1]) / (time.time() - write_time)
+    iops_lst.append(iops)
+    print("IOPS (over I/O time): ", iops)
+    return
 
 
 def explore_graph(g):
@@ -91,7 +119,7 @@ def label_candidate_nodes_QG_IOC(provenance_graph,query_graphs,query_graph_name)
     start_time = time.time()
     with open(args.ioc_file) as f:
         query_graphs_IOCs = json.load(f)
-        
+
     if query_graph_name == "all":
         corresponding_query_IOCs_ips = [ioc.lower() for query_graph in query_graphs_IOCs for ioc in query_graphs_IOCs[query_graph]["ip"]]
         corresponding_query_IOCs_files = [ioc.lower() for query_graph in query_graphs_IOCs for ioc in
@@ -812,9 +840,10 @@ def process_one_graph(graph_file, query_graphs,query_name,depth, min_nodes, max_
     graph_name = graph_file.split("/")[-1].replace(".json", "")
     print("\nprocessing ", graph_name,"with",query_name)
     one_graph_time = time.time()
-    current_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    current_mem = getrusage(RUSAGE_SELF).ru_maxrss
     provenance_graph = read_json_graph(graph_file)
-    print("Loading the graph consume:", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - current_mem, "KB")
+    print("Loading the graph consume:", getrusage(RUSAGE_SELF).ru_maxrss - current_mem, "KB")
+    print_memory_cpu_usage("Loading the graph")
     if args.QG_all:
         matched_nodes , all_matchedNodes , processNodes = label_candidate_nodes_QG_all(provenance_graph,query_graphs[query_name])
     else:    
@@ -893,9 +922,10 @@ def process_one_graph_training(graph_file, query_graphs,query_name):
     graph_name = graph_file.split("/")[-1].replace(".json", "")
     print("\nprocessing ", graph_name,"with",query_name)
     one_graph_time = time.time()
-    current_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    current_mem = getrusage(RUSAGE_SELF).ru_maxrss
     provenance_graph = read_json_graph(graph_file)
-    print("Loading the graph consume:", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - current_mem, "KB")
+    print("Loading the graph consume:", getrusage(resource.RUSAGE_SELF).ru_maxrss - current_mem, "KB")
+    print_memory_cpu_usage("Loading the graph")
     matched_nodes , all_matchedNodes , processNodes = label_candidate_nodes_QG_IOC(provenance_graph,query_graphs,query_name)
     if args.explore:
         explore_graph(provenance_graph)
@@ -915,6 +945,7 @@ def process_one_graph_training(graph_file, query_graphs,query_name):
 
 def main():
     start_running_time = time.time()
+    print_memory_cpu_usage("Initial memory")
     random.seed(123)
     if args.parallel:
         cluster = LocalCluster(n_workers=26)
@@ -1037,6 +1068,11 @@ def main():
                     process_one_graph(graph_file, query_graphs, query_graph_name, args.depth, args.min_nodes, max_nodes,max_edges)
 
     print("---Total Running Time : %s seconds ---" % (time.time() - start_running_time))
+    print_memory_cpu_usage("Final memory")
+    io_counters = process.io_counters()
+    print("IOPS (over total time): ", (io_counters[0] + io_counters[1]) / (time.time() - start_running_time))
+    print("I/O counters", io_counters)
+    print("Average IOPS (over I/O time): ",mean(iops_lst))
 
 
 if __name__ == "__main__":

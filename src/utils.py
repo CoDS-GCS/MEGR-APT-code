@@ -9,14 +9,26 @@ from torch_geometric.data import Data
 import matplotlib.pyplot as plt
 import os,psutil
 from resource import *
+import time
+process = psutil.Process()
 
 def ensure_dir(file_path):
+    write_time =time.time()
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
+    io_counters = process.io_counters()
+    iops = (io_counters[0] + io_counters[1]) / (time.time() - write_time)
+    print("IOPS (over I/O time): ", iops)
+    return iops
 def checkpoint(data, file_path):
+    write_time = time.time()
     ensure_dir(file_path)
     torch.save(data,file_path)
+    io_counters = process.io_counters()
+    iops = (io_counters[0] + io_counters[1]) / (time.time() - write_time)
+    print("IOPS (over I/O time): ", iops)
+    return iops
     
 def tab_printer(args):
     """
@@ -42,6 +54,7 @@ def print_memory_cpu_usage(message=None):
     print("The CPU usage is : ", cpu_usage)
     print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
           psutil.virtual_memory().percent)
+    return
 def draw_metrics_over_threshold(args):
     if args.dataset == "DARPA_OPTC":
         predict_cases = ["Malicious_Upgrade_in_attack_SysClient0051.pt",

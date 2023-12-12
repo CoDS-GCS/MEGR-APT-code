@@ -22,6 +22,10 @@ from torch_geometric.transforms import OneHotDegree
 from torch_geometric.data import InMemoryDataset
 
 import matplotlib.pyplot as plt
+# from iometrics import NetworkMetrics, DiskMetrics
+# disk = DiskMetrics()
+import psutil
+process = psutil.Process()
 
 class MEGRAPT(torch.nn.Module):
     """
@@ -596,7 +600,10 @@ class MEGRAPTTrainer(object):
                 print("**************************************************************")
             self.print_predict_evaluation_metrics(y_true,self.max_score)
                 
-        print("\n---Total Prediction Time : %s seconds ---" % (time.time() - self.prediction_time))    
+        print("\n---Total Prediction Time : %s seconds ---" % (time.time() - self.prediction_time))
+        io_counters = process.io_counters()
+        print("IOPS is : ", (io_counters[0] + io_counters[1]) / (time.time() - self.prediction_time))
+        print("I/O counters", io_counters)
 
 
     def predict_pairs(self):
@@ -730,6 +737,9 @@ class MEGRAPTTrainer(object):
         print("p@20: " + str(round(self.prec_at_20, 5)) + ".")
         
         print("\n---Total Running Time : %s seconds ---" % (time.time() - self.start_running_time))
+        io_counters = process.io_counters()
+        print("IOPS is : ", (io_counters[0] + io_counters[1]) / (time.time() - self.start_running_time))
+        print("I/O counters",io_counters)
         print("\n---Validating Time : %s seconds ---" % (time.time() - self.validate_time))
         print("Memory usage to load data: %s"% self.mem_loading_dataset," KB") 
         print("Memory usage to train the model: %s"% self.mem_train," KB") 
