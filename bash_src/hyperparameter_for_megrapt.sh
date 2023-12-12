@@ -83,22 +83,22 @@ if [[ "$skip_hyper" == "y" ]]; then
           if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt ]
           then
             echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt"
-#            train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
+            train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
           fi
           if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
           then
             echo "Predicting"
-#            predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
+            predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
           fi
           if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt ]
           then
             echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt"
-#            train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
+            train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
           fi
           if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
           then
             echo "Predicting"
-#            predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
+            predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
           fi
         done
     done
