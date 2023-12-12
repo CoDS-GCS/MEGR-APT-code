@@ -24,8 +24,8 @@ from torch_geometric.data import InMemoryDataset
 import matplotlib.pyplot as plt
 # from iometrics import NetworkMetrics, DiskMetrics
 # disk = DiskMetrics()
-import psutil
-process = psutil.Process()
+import psutil,os
+process = psutil.Process(os.getpid())
 
 class MEGRAPT(torch.nn.Module):
     """
