@@ -9,26 +9,17 @@ from torch_geometric.data import Data
 import matplotlib.pyplot as plt
 import os,psutil
 from resource import *
-import time
 process = psutil.Process(os.getpid())
 
 def ensure_dir(file_path):
-    write_time =time.time()
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
-    io_counters = process.io_counters()
-    iops = (io_counters[0] + io_counters[1]) / (time.time() - write_time)
-    print("IOPS (over I/O time): ", iops)
-    return iops
+    return
 def checkpoint(data, file_path):
-    write_time = time.time()
     ensure_dir(file_path)
     torch.save(data,file_path)
-    io_counters = process.io_counters()
-    iops = (io_counters[0] + io_counters[1]) / (time.time() - write_time)
-    print("IOPS (over I/O time): ", iops)
-    return iops
+    return
     
 def tab_printer(args):
     """
@@ -48,7 +39,7 @@ def print_memory_cpu_usage(message=None):
     print(message)
     print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
     print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
-    print('The CPU usage is (per process, interval 4): ', psutil.Process(os.getpid()).cpu_percent(4))
+    print('The CPU usage is (per process): ', psutil.Process(os.getpid()).cpu_percent(0))
     load1, load5, load15 = psutil.getloadavg()
     cpu_usage = (load15 / os.cpu_count()) * 100
     print("The CPU usage is : ", cpu_usage)
