@@ -29,7 +29,6 @@ parser.add_argument('--max-edges-mult-qg', type=int, help='Maximum number of edg
 parser.add_argument('--max-edges-training', type=int, help='Maximum number of edges for subgraphs', default=1000)
 parser.add_argument("--test-a-qg",type=str,default=None,help="The name of the tested query graph.")
 parser.add_argument("--pg-name",type=str,default=None,help="The nae of the tested provenance graph.")
-
 parser.add_argument('--min-iocs', type=int, help='Minimum number of Query Graph IOCs to accept subgraph', default=1)
 parser.add_argument('--output-prx', type=str, help='output file prefix ', default=None)
 parser.add_argument('--explore', help='Explore The Provenance Graph ',action="store_true", default=False)
@@ -55,9 +54,9 @@ def print_memory_cpu_usage(message=None):
     print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
     print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
     print('The CPU usage is: ', psutil.cpu_percent(0))
-    load1, load5, load15 = psutil.getloadavg()
-    cpu_usage = (load15 / os.cpu_count()) * 100
-    print("The CPU usage is : ", cpu_usage)
+    # load1, load5, load15 = psutil.getloadavg()
+    # cpu_usage = (load15 / os.cpu_count()) * 100
+    # print("The CPU usage is : ", cpu_usage)
     print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
           psutil.virtual_memory().percent)
     return

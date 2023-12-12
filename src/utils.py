@@ -40,9 +40,9 @@ def print_memory_cpu_usage(message=None):
     print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
     print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
     print('The CPU usage is (per process): ', psutil.Process(os.getpid()).cpu_percent(0))
-    load1, load5, load15 = psutil.getloadavg()
-    cpu_usage = (load15 / os.cpu_count()) * 100
-    print("The CPU usage is : ", cpu_usage)
+    # load1, load5, load15 = psutil.getloadavg()
+    # cpu_usage = (load15 / os.cpu_count()) * 100
+    # print("The CPU usage is : ", cpu_usage)
     print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
           psutil.virtual_memory().percent)
     return
