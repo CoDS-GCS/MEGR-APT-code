@@ -85,7 +85,7 @@ echo "vary number of layers"
 for layers in {1,2,3,4};do
   if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
   then
-    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}${vector1}-${vector2}-${vector3}_${epochs}.pt"
+    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
     train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
   fi
   predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
@@ -96,7 +96,7 @@ echo "vary learning rate"
 for learning_rate in {0.1,0.01,0.001,0.0001};do
   if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
   then
-    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}${vector1}-${vector2}-${vector3}_${epochs}.pt"
+    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
     train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
   fi
   predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
@@ -125,12 +125,18 @@ then
 fi
 predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
 
+if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-92_${epochs}.pt ]
+then
+  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-92_${epochs}.pt"
+  train_model ${layers} ${learning_rate} 128 92 92 ${dropout} ${epochs} rgcn
+fi
+predict_model ${layers} ${learning_rate} 128 92 92 ${dropout} ${epochs} ${Threshold}
 
 echo "vary dropout"
 for dropout in {0,0.1,0.2,0.3,0.4,0.5};do
   if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
   then
-    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}${vector1}-${vector2}-${vector3}_${epochs}.pt"
+    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
     train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
   fi
   predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
@@ -147,7 +153,7 @@ dropout=0
 #          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt ]
 #          then
 #            echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt"
-#            train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
+            #train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
 #          fi
 #          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
 #          then
@@ -157,7 +163,7 @@ dropout=0
 #          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt ]
 #          then
 #            echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt"
-#            train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
+            #train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
 #          fi
 #          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
 #          then
