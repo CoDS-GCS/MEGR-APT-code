@@ -74,49 +74,113 @@ train_model () {
     python -u ./src/main.py --dataset ${dataset} --dataset-path ./dataset/${dataset_name}/experiments/${training_prx}/ --gnn-operator ${gnn} --embedding-layers ${layer} --learning-rate ${LR} --dropout ${DR} --epochs ${ep} --plot --filters-1 ${vector1} --filters-2 ${vector2} --filters-3 ${vector3} --tensor-neurons ${vector3} --save ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layer}${gnn}_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}.pt > logs/${dataset_name}/hyperparameter/Training_${training_prx}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}_${date}.txt
 }
 
-read -p "Do you want to perform Hyper-parameters (y/N)": skip_hyper
-if [[ "$skip_hyper" == "y" ]]; then
-  epochs=1000
-  for layers in {1,2};do
-    for learning_rate in {0.001,0.0001,0.01};do
-        for dropout in {0,0.5};do
-          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt ]
-          then
-            echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt"
-            train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
-          fi
-          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
-          then
-            echo "Predicting"
-            predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
-          fi
-          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt ]
-          then
-            echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt"
-            train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
-          fi
-          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
-          then
-            echo "Predicting"
-            predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
-          fi
-        done
-    done
-  done
-else
-  if [[ "$host" == "cadets" ]]
+epochs=1000
+# Set Default Parameters
+learning_rate=0.001
+dropout=0
+vector1=64
+vector2=32
+vector3=16
+echo "vary number of layers"
+for layers in {1,2,3,4};do
+  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
   then
-    predict_model 2 0.001 128 92 64 0 1000 ${Threshold}
-  elif [[ "$host" == "theia" ]]
-  then
-    predict_model 2 0.001 64 64 32 0.5 1000 ${Threshold}
-  elif [[ "$host" == "trace" ]]
-  then
-    predict_model 1 0.0001 128 92 64 0 1000 ${Threshold}
-  elif [[ "$host" == "optc" ]]
-  then
-    predict_model 1 0.0001 128 92 64 0 1000 ${Threshold}
-  else
-    echo "Undefined host."
+    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}${vector1}-${vector2}-${vector3}_${epochs}.pt"
+    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
   fi
+  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+done
+layers=3
+
+echo "vary learning rate"
+for learning_rate in {0.1,0.01,0.001,0.0001};do
+  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+  then
+    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}${vector1}-${vector2}-${vector3}_${epochs}.pt"
+    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+  fi
+  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+done
+learning_rate=0.001
+
+echo "vary vector size"
+if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt ]
+then
+  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt"
+  train_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} rgcn
 fi
+predict_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} ${Threshold}
+
+if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt ]
+then
+  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt"
+  train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
+fi
+predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
+
+if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt ]
+then
+  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt"
+  train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
+fi
+predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
+
+
+echo "vary dropout"
+for dropout in {0,0.1,0.2,0.3,0.4,0.5};do
+  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+  then
+    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}${vector1}-${vector2}-${vector3}_${epochs}.pt"
+    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+  fi
+  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+done
+dropout=0
+
+
+#read -p "Do you want to perform Hyper-parameters (y/N)": skip_hyper
+#if [[ "$skip_hyper" == "y" ]]; then
+#  epochs=1000
+#  for layers in {1,2};do
+#    for learning_rate in {0.001,0.0001,0.01};do
+#        for dropout in {0,0.5};do
+#          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt ]
+#          then
+#            echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt"
+#            train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
+#          fi
+#          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
+#          then
+#            echo "Predicting"
+#            predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
+#          fi
+#          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt ]
+#          then
+#            echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt"
+#            train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
+#          fi
+#          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
+#          then
+#            echo "Predicting"
+#            predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
+#          fi
+#        done
+#    done
+#  done
+#else
+#  if [[ "$host" == "cadets" ]]
+#  then
+#    predict_model 2 0.001 128 92 64 0 1000 ${Threshold}
+#  elif [[ "$host" == "theia" ]]
+#  then
+#    predict_model 2 0.001 64 64 32 0.5 1000 ${Threshold}
+#  elif [[ "$host" == "trace" ]]
+#  then
+#    predict_model 1 0.0001 128 92 64 0 1000 ${Threshold}
+#  elif [[ "$host" == "optc" ]]
+#  then
+#    predict_model 1 0.0001 128 92 64 0 1000 ${Threshold}
+#  else
+#    echo "Undefined host."
+#  fi
+#fi
