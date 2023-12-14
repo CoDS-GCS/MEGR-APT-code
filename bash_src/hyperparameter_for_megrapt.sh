@@ -75,73 +75,110 @@ train_model () {
 }
 
 epochs=1000
-# Set Default Parameters
+#Set 2 layer as default
+layers=2
 learning_rate=0.001
 dropout=0
-vector1=64
-vector2=32
-vector3=16
-echo "vary number of layers"
-for layers in {1,2,3,4};do
-  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
-  then
-    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
-    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
-  fi
-  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
-done
-layers=3
-
-echo "vary learning rate"
-for learning_rate in {0.1,0.01,0.001,0.0001};do
-  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
-  then
-    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
-    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
-  fi
-  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
-done
-learning_rate=0.001
-
-echo "vary vector size"
 if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt ]
 then
   echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt"
   train_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} rgcn
 fi
 predict_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} ${Threshold}
-
-if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt ]
+learning_rate=0.1
+vector1=128
+vector2=92
+vector3=64
+if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
 then
-  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt"
-  train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
+  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+  train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
 fi
-predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
-
-if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt ]
+learning_rate=0.001
+dropout=0.25
+if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
 then
-  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt"
-  train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
+  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+  train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
 fi
-predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
-
-if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-92_${epochs}.pt ]
-then
-  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-92_${epochs}.pt"
-  train_model ${layers} ${learning_rate} 128 92 92 ${dropout} ${epochs} rgcn
-fi
-predict_model ${layers} ${learning_rate} 128 92 92 ${dropout} ${epochs} ${Threshold}
-
-echo "vary dropout"
-for dropout in {0,0.1,0.2,0.3,0.4,0.5};do
-  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
-  then
-    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
-    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
-  fi
-  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
-done
 dropout=0
+layers=3
+if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+then
+  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+  train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+fi
+
+## Set Default Parameters from SimGNN
+#learning_rate=0.001
+#dropout=0
+#vector1=64
+#vector2=32
+#vector3=16
+#echo "vary number of layers"
+#for layers in {1,2,3,4};do
+#  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+#  then
+#    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+#    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+#  fi
+#  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+#done
+#layers=3
+#
+#echo "vary learning rate"
+#for learning_rate in {0.1,0.01,0.001,0.0001};do
+#  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+#  then
+#    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+#    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+#  fi
+#  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+#done
+#learning_rate=0.001
+#
+#echo "vary vector size"
+#if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt ]
+#then
+#  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt"
+#  train_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} rgcn
+#fi
+#predict_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} ${Threshold}
+#
+#if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt ]
+#then
+#  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt"
+#  train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
+#fi
+#predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
+#
+#if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt ]
+#then
+#  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt"
+#  train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
+#fi
+#predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
+#
+#if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-92_${epochs}.pt ]
+#then
+#  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-92_${epochs}.pt"
+#  train_model ${layers} ${learning_rate} 128 92 92 ${dropout} ${epochs} rgcn
+#fi
+#predict_model ${layers} ${learning_rate} 128 92 92 ${dropout} ${epochs} ${Threshold}
+#vector1=64
+#vector2=32
+#vector3=16
+#
+#echo "vary dropout"
+#for dropout in {0,0.25,0.5};do
+#  if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+#  then
+#    echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+#    train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+#  fi
+#  predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+#done
+#dropout=0
 
 
 #read -p "Do you want to perform Hyper-parameters (y/N)": skip_hyper
