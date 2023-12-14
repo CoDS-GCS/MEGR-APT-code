@@ -75,17 +75,9 @@ train_model () {
 }
 
 epochs=1000
-#Set 2 layer as default
 layers=2
 learning_rate=0.001
 dropout=0
-if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt ]
-then
-  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt"
-  train_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} rgcn
-fi
-predict_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} ${Threshold}
-learning_rate=0.1
 vector1=128
 vector2=92
 vector3=64
@@ -94,20 +86,48 @@ then
   echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
   train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
 fi
-learning_rate=0.001
-dropout=0.25
-if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
-then
-  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
-  train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
-fi
-dropout=0
-layers=3
-if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
-then
-  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
-  train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
-fi
+predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+
+
+##Set 2 layer as default -- rerun for prediction
+#layers=2
+#learning_rate=0.001
+#dropout=0
+##if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt ]
+##then
+##  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-32-16_${epochs}.pt"
+##  train_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} rgcn
+##fi
+##predict_model ${layers} ${learning_rate} 64 32 16 ${dropout} ${epochs} ${Threshold}
+#
+#learning_rate=0.1
+#vector1=128
+#vector2=92
+#vector3=64
+##if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+##then
+##  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+##  train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+##fi
+#predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+#
+#learning_rate=0.001
+#dropout=0.25
+##if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+##then
+##  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+##  train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+##fi
+#predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
+#
+#dropout=0
+#layers=3
+##if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt ]
+##then
+##  echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_${vector1}-${vector2}-${vector3}_${epochs}.pt"
+##  train_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} rgcn
+##fi
+#predict_model ${layers} ${learning_rate} ${vector1} ${vector2} ${vector3} ${dropout} ${epochs} ${Threshold}
 
 ## Set Default Parameters from SimGNN
 #learning_rate=0.001
