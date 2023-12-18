@@ -86,11 +86,11 @@ for layer in {1,2,3};do
   train_model ${layer} ${LR} 64 32 16 ${DR} ${ep} rgcn
   train_model ${layer} ${LR} 64 64 32 ${DR} ${ep} rgcn
   train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
-  for LR in {0.1,0.01,0.001,0.0001};do
+  for LR in {0.1,0.01,0.0001};do
     train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
   done
   LR=0.001
-  for DR in {0,0.25,0.5};do
+  for DR in {0.25,0.5};do
     train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
   done
 done

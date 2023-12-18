@@ -558,12 +558,16 @@ def Traverse_rdf(params):
                 csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
                                           content_type='text/csv',
                                           bindings={'IOC_node': node}, limit=(max_edges + 10))
+                explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node",node))
+                print(explain_query)
             except Exception as e:
                 print("Error in Querying subgraph with seed", node, e)
                 return None, None
         else:
             try:
                 csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
+                explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node))
+                print(explain_query)
             except Exception as e:
                 print("Error in Querying subgraph with seed", node, e)
                 return None, None
