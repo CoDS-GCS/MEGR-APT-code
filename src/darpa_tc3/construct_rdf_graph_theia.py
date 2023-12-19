@@ -91,11 +91,11 @@ def process_a_graph(GRAPH_IRI, graph_file):
 
 def main():
     GRAPH_IRI = "http://grapt.org/darpa_tc3/theia/attack_linux_1_2/"
-    graph_file = "./dataset/darpa_theia/provenance_graphs/attack_Linux_1&2_provenance_graph_v2.json"
+    graph_file = "./dataset/darpa_theia/provenance_graphs/attack_Linux_1&2_provenance_graph.json"
     process_a_graph(GRAPH_IRI, graph_file)
 
     GRAPH_IRI = "http://grapt.org/darpa_tc3/theia/benign_theia/"
-    graph_file = "./dataset/darpa_theia/provenance_graphs/benign_Linux_provenance_graph_v2.json"
+    graph_file = "./dataset/darpa_theia/provenance_graphs/benign_Linux_provenance_graph.json"
     process_a_graph(GRAPH_IRI, graph_file)
 
 

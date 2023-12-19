@@ -7,13 +7,13 @@ import time
 
 
 def main():
-    graph_file = "./dataset/darpa_trace/provenance_graphs/attack_Linux_3_provenance_graph_part1_v2.pt"
+    graph_file = "./dataset/darpa_trace/provenance_graphs/attack_Linux_3_provenance_graph_part1.pt"
     with open(graph_file, 'rb') as f:
         provenance_graph = pickle.load(f)
     print("First Graph Size: ",provenance_graph.number_of_nodes(),provenance_graph.number_of_edges())
     for i in range(2,9):
         start_time = time.time()
-        graph_file_temp = './dataset/darpa_trace/provenance_graphs/attack_Linux_3_provenance_graph_part' + str(i)+'_v3.pt'
+        graph_file_temp = './dataset/darpa_trace/provenance_graphs/attack_Linux_3_provenance_graph_part' + str(i)+'.pt'
         print("Joining", graph_file_temp)
         with open(graph_file_temp, 'rb') as f:
             provenance_graph_temp = pickle.load(f)

@@ -14,14 +14,34 @@ load_graph () {
 
 }
 
-##DARPA OpTC
-#load_graph attack_SysClient0358
-#load_graph attack_SysClient0501
-load_graph attack_SysClient0051
-load_graph attack_SysClient0201
+if [[ "$dataset" == "optc" ]]
+then
+  load_graph attack_SysClient0358
+  load_graph attack_SysClient0501
+  load_graph attack_SysClient0051
+  load_graph attack_SysClient0201
 
-load_graph benign_SysClient0501
-load_graph benign_SysClient0051
-load_graph benign_SysClient0201
-load_graph benign_SysClient0358
-
+  load_graph benign_SysClient0501
+  load_graph benign_SysClient0051
+  load_graph benign_SysClient0201
+  load_graph benign_SysClient0358
+elif [[ "$dataset" == "cadets" ]]
+then
+  load_graph attack_BSD_1_provenance_graph
+  load_graph attack_BSD_2_provenance_graph
+  load_graph attack_BSD_3_4_provenance_graph
+  load_graph benign_BSD_provenance_graph
+elif [[ "$dataset" == "theia" ]]
+then
+  load_graph attack_Linux_1&2_provenance_graph
+  load_graph benign_Linux_provenance_graph
+elif [[ "$dataset" == "trace" ]]
+then
+  load_graph attack_Linux_4_provenance_graph
+  load_graph benign_TRACE_provenance_graph
+  for part in {1..8};do
+    load_graph attack_Linux_3_provenance_graph_part${part}
+  done
+else
+  echo "Undefined dataset"
+fi

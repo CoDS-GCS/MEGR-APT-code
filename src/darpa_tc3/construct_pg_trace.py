@@ -174,7 +174,7 @@ def build_graph(provenance_graph_name,provenance_graph_start,provenance_graph_en
     
     explore_graph(provenance_graph)
     print("Writing the graph to a file")
-    file_path = "./dataset/darpa_trace/provenance_graphs/" + provenance_graph_name + "_v3.pt"
+    file_path = "./dataset/darpa_trace/provenance_graphs/" + provenance_graph_name + ".pt"
     with open(file_path, 'wb') as f:
         pickle.dump(provenance_graph, f)
     construct_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_mem

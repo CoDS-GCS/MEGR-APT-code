@@ -93,7 +93,7 @@ def process_a_graph(GRAPH_IRI,graph_file):
 
 def main():
     GRAPH_IRI = "http://grapt.org/darpa_tc3/trace/attack_linux_3/"
-    graph_file = "./dataset/darpa_trace/provenance_graphs/attack_Linux_3_provenance_graph_part1_v2.pt"
+    graph_file = "./dataset/darpa_trace/provenance_graphs/attack_Linux_3_provenance_graph_part1.pt"
     process_a_graph(GRAPH_IRI,graph_file)
 
 if __name__ == "__main__":

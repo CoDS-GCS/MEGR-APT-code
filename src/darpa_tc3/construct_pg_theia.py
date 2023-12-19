@@ -165,7 +165,7 @@ def build_graph(provenance_graph_name,provenance_graph_start,provenance_graph_en
     explore_graph(provenance_graph)
     print("Writing the graph to a file")
     json_provenance_graph = json_graph.node_link_data(provenance_graph)
-    file_path = "./dataset/darpa_theia/provenance_graphs/" + provenance_graph_name + "_v2.json"
+    file_path = "./dataset/darpa_theia/provenance_graphs/" + provenance_graph_name + ".json"
     with open(file_path, 'w') as f:
         json.dump(json_provenance_graph, f)
     json_provenance_graph = None
