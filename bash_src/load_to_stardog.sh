@@ -10,13 +10,13 @@ load_graph () {
    graph_name=$1
    echo ${graph_name}.ttl >> logs/${dataset}/loading_${dataset}_provenance_graph_${date}.txt
 #   stardog data add --server-side http://localhost:${stardogPort}/${stardogDataseet} ${PG_path}/${graph_name}.ttl > logs/${dataset}/loading_${dataset}_provenance_graph_${date}.txt
-   stardog data add --server-side https://sd-d63d428a.stardog.cloud:5820/${stardogDataseet} -u ahmed3amerai@gmail.com ${PG_path}/${graph_name}.ttl > logs/${dataset}/loading_${dataset}_provenance_graph_${date}.txt
+   stardog data add ${stardogDataseet} ${PG_path}/${graph_name}.ttl -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023 > logs/${dataset}/loading_${dataset}_provenance_graph_${date}.txt
 
 }
 
 ##DARPA OpTC
 #load_graph attack_SysClient0358
-load_graph attack_SysClient0501
+#load_graph attack_SysClient0501
 load_graph attack_SysClient0051
 load_graph attack_SysClient0201
 
