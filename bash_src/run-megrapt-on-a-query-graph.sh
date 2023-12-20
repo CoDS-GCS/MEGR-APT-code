@@ -71,7 +71,7 @@ then
   read -p "Enter the Query Graphs IOCs file:" QG_IOCs
   python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --database-name ${stardog_db} --parallel --output-prx ${output_prx} --query-graphs-folder ./dataset/${dataset_name}/${QG_folder}/ --ioc-file ./dataset/${dataset_name}/${QG_IOCs}.json --test-a-qg ${QG} --pg-name ${pg_name} > logs/${dataset_name}/${output_prx}/preprocessing_${stardog_db}_${QG}_in_${pg_name}_${date}.txt
 else
-  python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --database-name ${stardog_db} --test-a-qg ${QG} --pg-name ${pg_name} --parallel --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/preprocessing_${stardog_db}_${QG}_in_${pg_name}_${date}.txt
+  python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --database-name ${stardog_db} --parallel --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/preprocessing_${stardog_db}_${QG}_in_${pg_name}_${date}.txt
 fi
 
 if [[ "$host" == "cadets" ]]
