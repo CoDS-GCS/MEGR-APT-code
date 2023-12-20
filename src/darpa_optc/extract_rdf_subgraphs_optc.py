@@ -46,6 +46,7 @@ parser.add_argument('--dataset', nargs="?", help='Dataset name', default="darpa_
 parser.add_argument('--training', help='Prepare training set', action="store_true", default=False)
 parser.add_argument('--n-subgraphs', type=int, help='Number of Subgraph', default=None)
 parser.add_argument('--traverse-with-time', help='Consider timestamp while traversing', action="store_false",default=True)
+parser.add_argument('--extract-with-one-query', help='Extract with one complex query', action="store_true",default=False)
 parser.add_argument("--test-a-qg",type=str,default=None,help="The name of the tested query graph.")
 parser.add_argument("--pg-name",type=str,default=None,help="The nae of the tested provenance graph.")
 parser.add_argument('--database-name', type=str, help='Stardog database name', default='optc')
@@ -112,6 +113,7 @@ def explore_graph(g):
     print("\nUnique edges type:", unique_edges_types)
     for i in unique_edges_types:
         print(i, ": ", len([node_id for node_id, _, node_type in g.edges.data("type") if node_type == i]))
+
 
 
 sparql_queries = {'Query_Suspicious_IP': """
@@ -283,9 +285,144 @@ sparql_queries = {'Query_Suspicious_IP': """
         }  
     } LIMIT <MAX_EDGES> 
 """,
-                  'Extract_Suspicious_Subgraph_withTime': """
+'Extract_Suspicious_Subgraph_withTime_R': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
-
+    # 1- forward
+    SELECT DISTINCT ?subject ?predicate ?object ?timestamp
+    WHERE {
+        << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
+        ?subject <GRAPH_NAME>:uuid ?IOC_node .
+        {?object rdf:type "process"} UNION {?object <GRAPH_NAME>:suspicious <Query> } .
+    }  LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_L': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #2- backward
+    SELECT DISTINCT ?subject ?predicate ?object ?timestamp
+    WHERE {
+        << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
+        ?object <GRAPH_NAME>:uuid ?IOC_node .
+        {?subject rdf:type "process"} UNION {?subject <GRAPH_NAME>:suspicious <Query>} .
+    } LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_RR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #3-a forward from all first neighbours  
+    SELECT DISTINCT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) ?timestamp
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        << ?first_object ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp . 
+        ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+        {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+        {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_RL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #3-b forward from all first neighbours  
+    SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)  ?timestamp
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        <<?first_subject ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp . 
+        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+        {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_LR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #4-a Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) ?timestamp 
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        << ?next_subject ?next_predicate ?first_object >> <GRAPH_NAME>:timestamp ?timestamp .
+        ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+        {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_LL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #4-b Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) ?timestamp
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        << ?next_subject ?next_predicate ?first_subject >> <GRAPH_NAME>:timestamp ?timestamp .
+        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+        {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_R': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    # 1- forward
+    SELECT DISTINCT ?subject ?predicate ?object 
+    WHERE {
+        ?subject ?predicate ?object .
+        ?subject <GRAPH_NAME>:uuid ?IOC_node .
+        {?object rdf:type "process"} UNION {?object <GRAPH_NAME>:suspicious <Query> } .
+    }  LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_L': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #2- backward
+    SELECT DISTINCT ?subject ?predicate ?object 
+    WHERE {
+        ?subject ?predicate ?object .
+        ?object <GRAPH_NAME>:uuid ?IOC_node .
+        {?subject rdf:type "process"} UNION {?subject <GRAPH_NAME>:suspicious <Query>} .
+    } LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_RR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #3-a forward from all first neighbours  
+    SELECT DISTINCT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        ?first_object ?next_predicate ?next_object . 
+        ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+        {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+        {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_RL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #3-b forward from all first neighbours  
+    SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        ?first_subject ?next_predicate ?next_object . 
+        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+        {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_LR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #4-a Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) 
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        ?next_subject ?next_predicate ?first_object .
+        ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+        {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_LL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
+    #4-b Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object)
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        ?next_subject ?next_predicate ?first_subject .
+        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+        {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
     SELECT DISTINCT * {
         {
             # 1- forward
@@ -447,6 +584,99 @@ sparql_queries = {'Query_Suspicious_IP': """
     }
     LIMIT <MAX_EDGES>
 """,
+'Extract_Benign_Subgraph_NoTime_R': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/> 
+    # 1- forward
+    SELECT DISTINCT ?subject ?predicate ?object 
+    WHERE {
+        ?subject ?predicate ?object .
+        ?subject <GRAPH_NAME>:uuid ?IOC_node .
+        FILTER NOT EXISTS {?object <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?predicate), ".*/event/.*") .
+    }   LIMIT <MAX_EDGES> 
+ """,
+'Extract_Benign_Subgraph_NoTime_L': """
+    #2- backward
+    SELECT DISTINCT ?subject ?predicate ?object 
+    WHERE {
+        ?subject ?predicate ?object .
+        ?object <GRAPH_NAME>:uuid ?IOC_node .
+        FILTER NOT EXISTS {?subject <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?predicate), ".*/event/.*") .
+    } LIMIT <MAX_EDGES> 
+""",
+'Extract_Benign_Subgraph_NoTime_RR': """             
+    # 3-a forward from all first neighbours  
+    SELECT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
+    WHERE {
+        ?first_object ?next_predicate ?next_object .
+        {
+            SELECT DISTINCT ?first_object 
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+                FILTER NOT EXISTS {?first_object <GRAPH_NAME>:suspicious ?susp}.
+                FILTER regex(str(?first_predicate), ".*/event/.*") .
+            }
+        }
+        FILTER NOT EXISTS {?next_object <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?next_predicate), ".*/event/.*") .
+    }    LIMIT <MAX_EDGES>
+""",
+'Extract_Benign_Subgraph_NoTime_RL': """
+     # 3-b forward from all first neighbours  
+    SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)  
+    WHERE {
+        ?first_subject ?next_predicate ?next_object
+        { 
+            SELECT DISTINCT ?first_subject
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                FILTER NOT EXISTS {?first_subject <GRAPH_NAME>:suspicious ?susp}.
+                FILTER regex(str(?first_predicate), ".*/event/.*") .
+            }
+        }
+        FILTER NOT EXISTS {?next_object <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?next_predicate), ".*/event/.*") .
+    } LIMIT <MAX_EDGES>
+""",
+'Extract_Benign_Subgraph_NoTime_LR': """
+    #4-a Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) 
+    WHERE {
+        ?next_subject ?next_predicate ?first_object
+        {
+            SELECT DISTINCT ?first_object
+            WHERE{
+                ?first_subject ?first_predicate ?first_object .
+                ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+                FILTER NOT EXISTS {?first_object <GRAPH_NAME>:suspicious ?susp}.
+                FILTER regex(str(?first_predicate), ".*/event/.*") .
+            }
+        }
+        FILTER NOT EXISTS {?next_subject <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?next_predicate), ".*/event/.*") .
+    }    LIMIT <MAX_EDGES> 
+""",
+'Extract_Benign_Subgraph_NoTime_LL': """
+     #4-b Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) 
+    WHERE {
+        ?next_subject ?next_predicate ?first_subject .
+        {
+            SELECT DISTINCT  ?first_subject  
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                FILTER NOT EXISTS {?first_subject <GRAPH_NAME>:suspicious ?susp}.
+                FILTER regex(str(?first_predicate), ".*/event/.*") .
+            }
+        }
+        FILTER NOT EXISTS {?next_subject <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?next_predicate), ".*/event/.*") .
+    }   LIMIT <MAX_EDGES>  
+""",
 
                   'Process_attributes': """
 PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
@@ -491,7 +721,6 @@ WHERE {
 }
 """
                   }
-
 
 def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     start_mem = getrusage(RUSAGE_SELF).ru_maxrss
@@ -539,14 +768,16 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
 
 def isint(val):
     try:
-        result = int(val)
+        int(val)
+        result = True
     except ValueError:
         result = False
     return bool(result)
 
 def isfloat(val):
     try:
-        result = float(val)
+        float(val)
+        result = True
     except ValueError:
         result = False
     return bool(result) and not isint(val)
@@ -557,27 +788,56 @@ def parse_profiled_query(explain_query):
     lines = explain_query.split('\n')
     query_IO_time = [float(number) for number in lines[1].split() if is_number(number)]
     if len(query_IO_time) == 2:
-        query_time_s = query_IO_time[0] / 1000
         query_IO = query_IO_time[1]
         query_IO_lst.append(query_IO)
-        query_time_IOPS_lst.append(query_IO / query_time_s)
+        if query_IO_time[0] != 0:
+            query_time_s = query_IO_time[0] / 1000
+            query_time_IOPS_lst.append(query_IO / query_time_s)
     else:
         print("Unable to parse", lines[1])
 
     query_memory = lines[2].split()[-1]
-    if (query_memory[-1] == 'M') and is_number(query_memory[:-1]):
+    if (query_memory[-1].upper() == 'M') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1])
         query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000
         query_memory_M_lst.append(query_memory_M)
-    elif (query_memory[-1] == 'G') and is_number(query_memory[:-1]):
+    elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1]) / 1000000
+        query_memory_M_lst.append(query_memory_M)
+    elif (query_memory[-1].upper() == 'G') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) * 1000
         query_memory_M_lst.append(query_memory_M)
     else:
         print("Unable to parse", lines[2])
     return
 
+def traverse_with_a_quert(node,query):
+    csv_results = conn.select(query,content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
+    explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
+    parse_profiled_query(explain_query)
+    # print(explain_query)
+    return csv_results
+def traverse_with_small_queries(node,graph_sparql_queries):
+    subgraphTriples = pd.DataFrame()
+    if args.training:
+        query_name = "Extract_Benign_Subgraph_NoTime_"
+    else:
+        if args.traverse_with_time:
+            query_name = "Extract_Suspicious_Subgraph_withTime_"
+        else:
+            query_name = "Extract_Suspicious_Subgraph_NoTime_"
+    for direction in ['R','L',"RR","RL","LR","LL"]:
+        query_name_tmp = query_name + direction
+        csv_results = traverse_with_a_quert(node,graph_sparql_queries[query_name_tmp])
+        subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
+        subgraphTriples =  pd.concat([subgraphTriples,subgraphTriples_tmp], ignore_index=True, sort=False)
+        del subgraphTriples_tmp
+        subgraphTriples.drop_duplicates()
+        if len(subgraphTriples) > max_edges:
+            break
+    return subgraphTriples
 def Traverse_rdf(params):
     traverse_time = time.time()
     global max_edges,max_nodes
@@ -585,38 +845,43 @@ def Traverse_rdf(params):
     ioc = params[1]
     node = params[2]
     node = "\"" + node + "\""
-    if args.training:
-        rand_limit = random.randint((max_edges / 10), max_edges)
-        try:
-            csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_NoTime'], content_type='text/csv',
-                                      bindings={'IOC_node': node}, limit=(rand_limit))
-        except Exception as e:
-            print("Error in Querying subgraph with seed", node, e)
-            return None, None
-    else:
-        if args.traverse_with_time:
+    if args.extract_with_one_query:
+        if args.training:
+            rand_limit = random.randint((max_edges / 10), max_edges)
             try:
-                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
-                                          content_type='text/csv',
-                                          bindings={'IOC_node': node}, limit=(max_edges + 10))
-                explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node",node),profile=True)
-                parse_profiled_query(explain_query)
-                # print(explain_query)
+                csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_NoTime'], content_type='text/csv',
+                                          bindings={'IOC_node': node}, limit=(rand_limit))
             except Exception as e:
                 print("Error in Querying subgraph with seed", node, e)
                 return None, None
+            subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
         else:
-            try:
-                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
-                explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node), profile=True)
-                parse_profiled_query(explain_query)
-                # print(explain_query)
-            except Exception as e:
-                print("Error in Querying subgraph with seed", node, e)
-                return None, None
-    subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
+            if args.traverse_with_time:
+                try:
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
+                                              content_type='text/csv',
+                                              bindings={'IOC_node': node}, limit=(max_edges + 10))
+                    explain_query = conn.explain(
+                        graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),
+                        profile=True)
+                    parse_profiled_query(explain_query)
+                except Exception as e:
+                    print("Error in Querying subgraph with seed", node, e)
+                    return None, None
+            else:
+                try:
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
+                    explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node), profile=True)
+                    parse_profiled_query(explain_query)
+                except Exception as e:
+                    print("Error in Querying subgraph with seed", node, e)
+                    return None, None
+        subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
+    else:
+        subgraphTriples = traverse_with_small_queries(node, graph_sparql_queries)
     if len(subgraphTriples) > max_edges:
-        # print("Subgraph not within range", len(subgraphTriples),"edges")
+        print("Subgraph not within range", len(subgraphTriples),"edges")
+        print("Traversed in ", time.time() - traverse_time, "seconds")
         return None, None
 
     # Convert subgraphTriples to networkx "subgraph"
@@ -700,6 +965,7 @@ def Traverse_rdf(params):
     attributes_df, nodes_df, temp_df = None, None, None
     if (subgraph.number_of_nodes() < args.min_nodes) or (subgraph.number_of_nodes() > max_nodes):
         print("Subgraph not within range", subgraph.number_of_nodes(),"nodes")
+        print("Traversed in ", time.time() - traverse_time, "seconds")
         return None, None
     print("Extracted a suspicious subgraph with", subgraph.number_of_nodes(), "nodes, and ", subgraph.number_of_edges(), "edges")
     print("Traversed in ", time.time() - traverse_time, "seconds")
