@@ -536,25 +536,34 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
         return
     return suspicious_nodes, all_suspicious_nodes
 
+
 def parse_profiled_query(explain_query):
     global query_memory_M_lst, query_IO_lst, query_time_IOPS_lst
     lines = explain_query.split('\n')
-    query_IO = int(lines[1].split(' ')[7])
-    query_IO_lst.append(query_IO)
-    query_time_s = float(lines[1].split(' ')[3]) / 1000
-    query_time_IOPS_lst.append(query_IO/query_time_s)
+    query_IO = lines[1].split(' ')[7]
+    if query_IO.isdigit():
+        query_IO = int(query_IO)
+        query_IO_lst.append(query_IO)
+    else:
+        print("Unable to parse", query_IO)
+    query_time_s = lines[1].split(' ')[3]
+    if query_time_s.isdigit():
+        query_time_s = float(query_time_s) / 1000
+        query_time_IOPS_lst.append(query_IO/query_time_s)
+    else:
+        print("Unable to parse", query_time_s)
     query_memory = lines[2].split(' ')[3]
-    if query_memory[-1] == 'M':
+    if (query_memory[-1] == 'M') and query_memory[:-1].isdigit():
         query_memory_M = float(query_memory[:-1])
         query_memory_M_lst.append(query_memory_M)
-    elif query_memory[-1].upper() == 'K':
+    elif (query_memory[-1].upper() == 'K') and query_memory[:-1].isdigit():
         query_memory_M = float(query_memory[:-1]) / 1000
         query_memory_M_lst.append(query_memory_M)
-    elif query_memory[-1] == 'G':
+    elif (query_memory[-1] == 'G') and query_memory[:-1].isdigit():
         query_memory_M = float(query_memory[:-1]) * 1000
         query_memory_M_lst.append(query_memory_M)
     else:
-        print("Undefined", query_memory)
+        print("Unable to parse", query_memory)
     return
 
 def Traverse_rdf(params):
