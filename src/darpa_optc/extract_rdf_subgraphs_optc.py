@@ -537,25 +537,45 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     return suspicious_nodes, all_suspicious_nodes
 
 
+def isint(val):
+    try:
+        result = int(val)
+    except ValueError:
+        result = False
+    return bool(result)
+
+def isfloat(val):
+    try:
+        result = float(val)
+    except ValueError:
+        result = False
+    return bool(result) and not isint(val)
+def is_number(val):
+    return isint(val) or isfloat(val)
 def parse_profiled_query(explain_query):
     global query_memory_M_lst, query_IO_lst, query_time_IOPS_lst
     lines = explain_query.split('\n')
-    query_time_s, query_IO = [float(number) for number in lines[1].split() if number.isdigit()]
-    query_IO_lst.append(query_IO)
-    query_time_s /= 1000
-    query_time_IOPS_lst.append(query_IO / query_time_s)
+    query_IO_time = [float(number) for number in lines[1].split() if is_number(number)]
+    if len(query_IO_time) == 2:
+        query_time_s = query_IO_time[0] / 1000
+        query_IO = query_IO_time[1]
+        query_IO_lst.append(query_IO)
+        query_time_IOPS_lst.append(query_IO / query_time_s)
+    else:
+        print("Unable to parse", lines[1])
+
     query_memory = lines[2].split()[-1]
-    if (query_memory[-1] == 'M') and query_memory[:-1].isdigit():
+    if (query_memory[-1] == 'M') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1])
         query_memory_M_lst.append(query_memory_M)
-    elif (query_memory[-1].upper() == 'K') and query_memory[:-1].isdigit():
+    elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000
         query_memory_M_lst.append(query_memory_M)
-    elif (query_memory[-1] == 'G') and query_memory[:-1].isdigit():
+    elif (query_memory[-1] == 'G') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) * 1000
         query_memory_M_lst.append(query_memory_M)
     else:
-        print("Unable to parse", query_memory)
+        print("Unable to parse", lines[2])
     return
 
 def Traverse_rdf(params):
