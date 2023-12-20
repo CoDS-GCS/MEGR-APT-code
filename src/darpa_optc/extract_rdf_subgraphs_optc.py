@@ -540,19 +540,11 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
 def parse_profiled_query(explain_query):
     global query_memory_M_lst, query_IO_lst, query_time_IOPS_lst
     lines = explain_query.split('\n')
-    query_IO = lines[1].split(' ')[7]
-    if query_IO.isdigit():
-        query_IO = int(query_IO)
-        query_IO_lst.append(query_IO)
-    else:
-        print("Unable to parse", query_IO)
-    query_time_s = lines[1].split(' ')[3]
-    if query_time_s.isdigit():
-        query_time_s = float(query_time_s) / 1000
-        query_time_IOPS_lst.append(query_IO/query_time_s)
-    else:
-        print("Unable to parse", query_time_s)
-    query_memory = lines[2].split(' ')[3]
+    query_time_s, query_IO = [float(number) for number in lines[1].split() if number.isdigit()]
+    query_IO_lst.append(query_IO)
+    query_time_s /= 1000
+    query_time_IOPS_lst.append(query_IO / query_time_s)
+    query_memory = lines[2].split()[-1]
     if (query_memory[-1] == 'M') and query_memory[:-1].isdigit():
         query_memory_M = float(query_memory[:-1])
         query_memory_M_lst.append(query_memory_M)
@@ -1038,13 +1030,12 @@ def main():
     print("program IOPS (over total time): ", program_IOPs)
     print("I/O counters", io_counters)
     print("Average IOPS by subgraph extraction queries:", mean(query_time_IOPS_lst))
-    print("Average IOPS by subgraph extraction queries plus the program IOPs:",
-          mean(query_time_IOPS_lst) + program_IOPs)
+
     print("Total IOPS (over total time, including extraction query IO ):",
           (io_counters[0] + io_counters[1] + sum(query_IO_lst)) / (time.time() - start_running_time))
-
-    print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst) ,"M")
     print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
+    print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst), "M")
+    print("Min occupied memory by subgraph extraction queries:", min(query_memory_M_lst), "M")
     print("**************************************\nLogs:\nquery_memory_M_lst:",query_memory_M_lst)
 
     if args.parallel:
