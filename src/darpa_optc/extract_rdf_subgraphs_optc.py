@@ -828,7 +828,7 @@ def traverse_with_small_queries(node,graph_sparql_queries):
             query_name = "Extract_Suspicious_Subgraph_withTime_"
         else:
             query_name = "Extract_Suspicious_Subgraph_NoTime_"
-    for direction in ['R','L',"RR","RL","LR","LL"]:
+    for direction in ["RR","RL","LR","LL",'R','L']:
         query_name_tmp = query_name + direction
         csv_results = traverse_with_a_quert(node,graph_sparql_queries[query_name_tmp])
         subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
