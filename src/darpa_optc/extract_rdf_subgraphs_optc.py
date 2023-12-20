@@ -547,7 +547,7 @@ def parse_profiled_query(explain_query):
     if query_memory[-1] == 'M':
         query_memory_M = float(query_memory[:-1])
         query_memory_M_lst.append(query_memory_M)
-    elif query_memory[-1] == 'K':
+    elif query_memory[-1].upper() == 'K':
         query_memory_M = float(query_memory[:-1]) / 1000
         query_memory_M_lst.append(query_memory_M)
     elif query_memory[-1] == 'G':
@@ -1023,16 +1023,20 @@ def main():
         process_one_graph(GRAPH_IRI, sparql_queries, args.test_a_qg)
 
     print("---Total Running Time for", args.dataset, "host is: %s seconds ---" % (time.time() - start_running_time))
+
     io_counters = process.io_counters()
     program_IOPs = (io_counters[0] + io_counters[1]) / (time.time() - start_running_time)
-    print("IOPS (over total time): ", program_IOPs)
+    print("program IOPS (over total time): ", program_IOPs)
     print("I/O counters", io_counters)
-    print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst) ,"M")
-    print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
     print("Average IOPS by subgraph extraction queries:", mean(query_time_IOPS_lst))
-    print("Average IOPS by subgraph extraction queries plus the program IOPs:", mean(query_time_IOPS_lst) + program_IOPs)
+    print("Average IOPS by subgraph extraction queries plus the program IOPs:",
+          mean(query_time_IOPS_lst) + program_IOPs)
     print("Total IOPS (over total time, including extraction query IO ):",
           (io_counters[0] + io_counters[1] + sum(query_IO_lst)) / (time.time() - start_running_time))
+
+    print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst) ,"M")
+    print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
+
     if args.parallel:
         release_memory(client)
 
