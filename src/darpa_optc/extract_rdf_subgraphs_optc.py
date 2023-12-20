@@ -800,8 +800,8 @@ def parse_profiled_query(explain_query):
     if (query_memory[-1].upper() == 'M') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1])
         query_memory_M_lst.append(query_memory_M)
-    if (query_memory[-2:].upper() == 'M,') and is_number(query_memory[:-2]):
-        query_memory_M = float(query_memory[:-1])
+    if (query_memory[-2:] == 'M,') and is_number(query_memory[:-2]):
+        query_memory_M = float(query_memory[:-2])
         query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000
