@@ -1036,6 +1036,7 @@ def main():
 
     print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst) ,"M")
     print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
+    print("**************************************\nLogs:\nquery_memory_M_lst:",query_memory_M_lst)
 
     if args.parallel:
         release_memory(client)
