@@ -80,25 +80,25 @@ mkdir -p model/megrapt/${dataset_name}/hyperparameter/
 Threshold=0.4
 ep=1000
 
-DR=0
-LR=0.001
-layer=1
-train_model ${layer} ${LR} 64 32 16 ${DR} ${ep} rgcn
+#DR=0
+#LR=0.001
+#layer=1
+#train_model ${layer} ${LR} 64 32 16 ${DR} ${ep} rgcn
 
-#for layer in {1,2,3};do
-#  DR=0
-#  LR=0.001
-#  train_model ${layer} ${LR} 64 32 16 ${DR} ${ep} rgcn
-#  train_model ${layer} ${LR} 64 64 32 ${DR} ${ep} rgcn
-#  train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
-#  for LR in {0.1,0.01,0.0001};do
-#    train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
-#  done
-#  LR=0.001
-#  for DR in {0.25,0.5};do
-#    train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
-#  done
-#done
+for layer in {1,2,3};do
+  DR=0
+  LR=0.001
+  train_model ${layer} ${LR} 64 32 16 ${DR} ${ep} rgcn
+  train_model ${layer} ${LR} 64 64 32 ${DR} ${ep} rgcn
+  train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
+  for LR in {0.1,0.01,0.0001};do
+    train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
+  done
+  LR=0.001
+  for DR in {0.25,0.5};do
+    train_model ${layer} ${LR} 128 92 64 ${DR} ${ep} rgcn
+  done
+done
 
 
 

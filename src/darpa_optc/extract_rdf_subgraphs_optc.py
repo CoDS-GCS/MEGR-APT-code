@@ -24,6 +24,9 @@ import stardog
 import os, psutil
 import sys
 current_dir = os.getcwd()
+# import warnings
+# import distributed
+# warnings.simplefilter("ignore", distributed.comm.core.CommClosedError)
 sys.path.append(current_dir+"/src")
 from dataset_config import get_stardog_cred
 
