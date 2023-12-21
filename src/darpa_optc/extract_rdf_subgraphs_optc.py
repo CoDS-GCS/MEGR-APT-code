@@ -800,7 +800,7 @@ def parse_profiled_query(explain_query):
     if (query_memory[-1].upper() == 'M') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1])
         query_memory_M_lst.append(query_memory_M)
-    if (query_memory[-2:] == 'M,') and is_number(query_memory[:-2]):
+    elif (query_memory[-2:] == 'M,') and is_number(query_memory[:-2]):
         query_memory_M = float(query_memory[:-2])
         query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
@@ -816,7 +816,7 @@ def parse_profiled_query(explain_query):
         print("Unable to parse", lines[2])
     return
 
-def traverse_with_a_quert(node,query):
+def traverse_with_a_query(node,query):
     csv_results = conn.select(query,content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
     explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
     parse_profiled_query(explain_query)
@@ -833,7 +833,7 @@ def traverse_with_small_queries(node,graph_sparql_queries):
             query_name = "Extract_Suspicious_Subgraph_NoTime_"
     for direction in ["RR","RL","LR","LL",'R','L']:
         query_name_tmp = query_name + direction
-        csv_results = traverse_with_a_quert(node,graph_sparql_queries[query_name_tmp])
+        csv_results = traverse_with_a_query(node,graph_sparql_queries[query_name_tmp])
         subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
         subgraphTriples =  pd.concat([subgraphTriples,subgraphTriples_tmp], ignore_index=True, sort=False)
         del subgraphTriples_tmp
