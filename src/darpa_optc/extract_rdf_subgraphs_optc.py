@@ -820,36 +820,40 @@ def parse_profiled_query(explain_query):
     return
 
 def traverse_with_a_query(node,query):
-    csv_results = conn.select(query,content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
-    explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
-    parse_profiled_query(explain_query)
-    # print(explain_query)
+    try:
+        csv_results = conn.select(query,content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
+        explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
+        parse_profiled_query(explain_query)
+    except Exception as e:
+        print("Error in Querying subgraph with seed", node, e)
+        return None
     return csv_results
-def traverse_with_small_queries(node,graph_sparql_queries):
-    subgraphTriples = pd.DataFrame()
-    if args.training:
-        query_name = "Extract_Benign_Subgraph_NoTime_"
-    else:
-        if args.traverse_with_time:
-            query_name = "Extract_Suspicious_Subgraph_withTime_"
-        else:
-            query_name = "Extract_Suspicious_Subgraph_NoTime_"
-    for direction in ["RR","RL","LR","LL",'R','L']:
-        query_name_tmp = query_name + direction
-        csv_results = traverse_with_a_query(node,graph_sparql_queries[query_name_tmp])
-        subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
-        subgraphTriples =  pd.concat([subgraphTriples,subgraphTriples_tmp], ignore_index=True, sort=False)
-        del subgraphTriples_tmp
-        subgraphTriples.drop_duplicates()
-        if len(subgraphTriples) > max_edges:
-            break
-    return subgraphTriples
+# def traverse_with_small_queries(node,graph_sparql_queries):
+#     subgraphTriples = pd.DataFrame()
+#     if args.training:
+#         query_name = "Extract_Benign_Subgraph_NoTime_"
+#     else:
+#         if args.traverse_with_time:
+#             query_name = "Extract_Suspicious_Subgraph_withTime_"
+#         else:
+#             query_name = "Extract_Suspicious_Subgraph_NoTime_"
+#     for direction in ["RR","RL","LR","LL",'R','L']:
+#         query_name_tmp = query_name + direction
+#         csv_results = traverse_with_a_query(node,graph_sparql_queries[query_name_tmp])
+#         subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
+#         subgraphTriples =  pd.concat([subgraphTriples,subgraphTriples_tmp], ignore_index=True, sort=False)
+#         del subgraphTriples_tmp
+#         subgraphTriples.drop_duplicates()
+#         if len(subgraphTriples) > max_edges:
+#             break
+#     return subgraphTriples
 def Traverse_rdf(params):
     traverse_time = time.time()
     global max_edges,max_nodes
-    graph_sparql_queries = params[0]
-    ioc = params[1]
-    node = params[2]
+    global graph_sparql_queries
+    # graph_sparql_queries = params[0]
+    ioc = params[0]
+    node = params[1]
     node = "\"" + node + "\""
     if args.extract_with_one_query:
         if args.training:
@@ -884,7 +888,28 @@ def Traverse_rdf(params):
                     return None, None
         subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
     else:
-        subgraphTriples = traverse_with_small_queries(node, graph_sparql_queries)
+        subgraphTriples = pd.DataFrame()
+        if args.training:
+            query_name = "Extract_Benign_Subgraph_NoTime_"
+        else:
+            if args.traverse_with_time:
+                query_name = "Extract_Suspicious_Subgraph_withTime_"
+            else:
+                query_name = "Extract_Suspicious_Subgraph_NoTime_"
+        for direction in ["RR", "RL", "LR", "LL", 'R', 'L']:
+            query_name_tmp = query_name + direction
+            csv_results = traverse_with_a_query(node, graph_sparql_queries[query_name_tmp])
+            if csv_results:
+                subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
+                subgraphTriples = pd.concat([subgraphTriples, subgraphTriples_tmp], ignore_index=True, sort=False)
+                del subgraphTriples_tmp
+                subgraphTriples.drop_duplicates()
+                if len(subgraphTriples) > max_edges:
+                    break
+            else:
+                return None, None
+
+        # subgraphTriples = traverse_with_small_queries(node, graph_sparql_queries)
     if len(subgraphTriples) > max_edges:
         print("Subgraph not within range", len(subgraphTriples),"edges")
         print("Traversed in ", time.time() - traverse_time, "seconds")
@@ -978,7 +1003,8 @@ def Traverse_rdf(params):
     return ioc,subgraph
 
 
-def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_suspicious_nodes):
+def extract_suspGraphs_depth_rdf(suspicious_nodes, all_suspicious_nodes):
+    global graph_sparql_queries
     start_time = time.time()
     start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     suspGraphs = []
@@ -995,7 +1021,7 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
         cores = multiprocessing.cpu_count() - 2
         if len(all_suspicious_nodes) < cores:
             cores = len(all_suspicious_nodes)
-        multi_queries = [[graph_sparql_queries,ioc, node] for ioc,nodes in matched_ioc_mask.items() for node in nodes if len(nodes) > 0]
+        multi_queries = [[ioc, node] for ioc,nodes in matched_ioc_mask.items() for node in nodes if len(nodes) > 0]
         suspicious_nodes_dask = db.from_sequence(multi_queries, npartitions=cores)
         tmp_suspGraphs = suspicious_nodes_dask.map(lambda g: Traverse_rdf(g)).compute()
         tmp_suspGraphs = [suspGraphs for suspGraphs in tmp_suspGraphs if suspGraphs is not None]
@@ -1008,7 +1034,7 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
         for ioc,nodes in matched_ioc_mask.items():
             if len(nodes) > 0:
                 for node in nodes:
-                    tmp_suspGraphs = Traverse_rdf([graph_sparql_queries,ioc, node])
+                    tmp_suspGraphs = Traverse_rdf([ioc, node])
                     if tmp_suspGraphs:
                         _,subgraph = tmp_suspGraphs
                         if subgraph:
@@ -1045,7 +1071,8 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
     return suspGraphs
 
 
-def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
+def Extract_Random_Benign_Subgraphs(n_subgraphs):
+    global graph_sparql_queries
     start_time = time.time()
     benignSubGraphs = []
     if args.parallel:
@@ -1058,7 +1085,7 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
             benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
             print("Number of Random Benign Seed Nodes:", len(benign_nodes))
             benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
-            multi_queries = [[graph_sparql_queries,"na", node] for node in benign_nodes]
+            multi_queries = [["na", node] for node in benign_nodes]
             benign_nodes_dask = db.from_sequence(multi_queries, npartitions=cores)
             tmp_benignSubGraphs = benign_nodes_dask.map(lambda g: Traverse_rdf(g)).compute()
             tmp_benignSubGraphs = [benignSubGraphs for benignSubGraphs in tmp_benignSubGraphs if benignSubGraphs is not None]
@@ -1075,7 +1102,7 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
         benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
         print("Number of Random Benign Seed Nodes:", len(benign_nodes))
         for node in benign_nodes:
-            tmp_benignSubGraph = Traverse_rdf([graph_sparql_queries,"na", node])
+            tmp_benignSubGraph = Traverse_rdf(["na", node])
             if tmp_benignSubGraph:
                 _,subgraph = tmp_benignSubGraph
                 if subgraph:
@@ -1204,6 +1231,7 @@ def convert_to_torch_data(training_graphs, testing_graphs):
 
 
 def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
+    global graph_sparql_queries
     start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     one_graph_time = time.time()
     global max_edges,max_nodes
@@ -1224,8 +1252,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
         print_memory_cpu_usage("Extraction")
         return
-    suspSubGraphs = extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes,
-                                                                       all_suspicious_nodes)
+    suspSubGraphs = extract_suspGraphs_depth_rdf(suspicious_nodes,all_suspicious_nodes)
     if len(suspSubGraphs) == 0:
         print("No suspicious subgraphs in", GRAPH_NAME, "with", query_graph_name)
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
