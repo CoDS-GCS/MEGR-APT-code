@@ -680,7 +680,6 @@ sparql_queries = {'Query_Suspicious_IP': """
         FILTER regex(str(?next_predicate), ".*/event/.*") .
     }   LIMIT <MAX_EDGES>  
 """,
-
                   'Process_attributes': """
 PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?command_lines ?image_paths
