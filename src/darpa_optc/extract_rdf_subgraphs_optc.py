@@ -822,15 +822,7 @@ def parse_profiled_query(explain_query):
         print("Unable to parse", lines[2])
     return
 
-def traverse_with_a_query(node,query):
-    try:
-        csv_results = conn.select(query,content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
-        explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
-        parse_profiled_query(explain_query)
-    except Exception as e:
-        print("Error in Querying subgraph with seed", node, e)
-        return None
-    return csv_results
+
 # def traverse_with_small_queries(node,graph_sparql_queries):
 #     subgraphTriples = pd.DataFrame()
 #     if args.training:
@@ -851,14 +843,7 @@ def traverse_with_a_query(node,query):
 #             break
 #     return subgraphTriples
 
-def handle_query(query,node):
-    try:
-        csv_results = conn.select(query, content_type='text/csv',bindings={'Node': node})
-        temp_df = pd.read_csv(io.BytesIO(csv_results))
-    except Exception as e:
-        print("Error in Querying attributes for node", node, e)
-        temp_df = pd.DataFrame()
-    return temp_df
+
 def Traverse_rdf(params):
     traverse_time = time.time()
     global max_edges,max_nodes
@@ -867,6 +852,16 @@ def Traverse_rdf(params):
     ioc = params[1]
     node = params[2]
     node = "\"" + node + "\""
+    def traverse_with_a_query(node, query):
+        try:
+            csv_results = conn.select(query, content_type='text/csv', bindings={'IOC_node': node},
+                                      limit=(max_edges + 10))
+            explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
+            parse_profiled_query(explain_query)
+        except Exception as e:
+            print("Error in Querying subgraph with seed", node, e)
+            return None
+        return csv_results
     if args.extract_with_one_query:
         if args.training:
             rand_limit = random.randint((max_edges / 10), max_edges)
@@ -921,7 +916,7 @@ def Traverse_rdf(params):
         print("Subgraph not within range", len(subgraphTriples),"edges")
         print("Traversed in ", time.time() - traverse_time, "seconds")
         return None, None
-
+    print("Extracted a candidate subgraph with",subgraphTriples,"triples")
     # Convert subgraphTriples to networkx "subgraph"
     # Parse Triples
     try:
@@ -959,6 +954,14 @@ def Traverse_rdf(params):
     nodes_df_o[["uuid", "type"]] = subgraphTriples[["object_uuid", "object_type"]]
     nodes_df = pd.concat([nodes_df_s, nodes_df_o], ignore_index=True)
     nodes_df_s, nodes_df_o, subgraphTriples = None, None, None
+    def handle_query(query, node):
+        try:
+            csv_results = conn.select(query, content_type='text/csv', bindings={'Node': node})
+            temp_df = pd.read_csv(io.BytesIO(csv_results))
+        except Exception as e:
+            print("Error in Querying attributes for node", node, e)
+            temp_df = pd.DataFrame()
+        return temp_df
     nodes_df = nodes_df.drop_duplicates()
     attributes_df = {}
     for index, row in nodes_df.iterrows():
