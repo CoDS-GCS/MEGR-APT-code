@@ -802,7 +802,7 @@ def parse_profiled_query(explain_query):
         #     query_time_IOPS_lst.append(query_IO / query_time_s)
     else:
         print("Unable to parse", lines[1])
-
+        query_IO = None
     query_memory = lines[2].split()[-1]
     if (query_memory[-1].upper() == 'M') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1])
@@ -821,8 +821,8 @@ def parse_profiled_query(explain_query):
         # query_memory_M_lst.append(query_memory_M)
     else:
         print("Unable to parse", lines[2])
+        query_memory_M = None
     return query_memory_M, query_IO
-
 
 # def traverse_with_small_queries(node,graph_sparql_queries):
 #     subgraphTriples = pd.DataFrame()
@@ -916,7 +916,7 @@ def Traverse_rdf(params):
     if len(subgraphTriples) > max_edges:
         print("Subgraph not within range", len(subgraphTriples),"edges")
         print("Traversed in ", time.time() - traverse_time, "seconds")
-        return None, None
+        return None, None, None, None
     print("Extracted a candidate subgraph with",len(subgraphTriples),"triples")
     # Convert subgraphTriples to networkx "subgraph"
     # Parse Triples
@@ -931,7 +931,7 @@ def Traverse_rdf(params):
         subgraphTriples['object_uuid'] = subgraphTriples['object'].str.split('/').str[-1]
     except:
         print("Not standard format for", node)
-        return None, None
+        return None, None, None, None
     # Construct Graph from Edges
     if args.traverse_with_time:
         subgraph = nx.from_pandas_edgelist(
@@ -987,7 +987,7 @@ def Traverse_rdf(params):
     if (subgraph.number_of_nodes() < args.min_nodes) or (subgraph.number_of_nodes() > max_nodes):
         print("Subgraph not within range", subgraph.number_of_nodes(),"nodes")
         print("Traversed in ", time.time() - traverse_time, "seconds")
-        return None, None
+        return None, None, None, None
     print("Extracted a suspicious subgraph with", subgraph.number_of_nodes(), "nodes, and ", subgraph.number_of_edges(), "edges")
     print("Traversed in ", time.time() - traverse_time, "seconds")
     return ioc,subgraph, query_memory_M, query_IO
@@ -1019,8 +1019,10 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
         for ioc,subgraph,query_memory_M, query_IO in tmp_suspGraphs:
             if subgraph:
                 suspGraphs.append(subgraph.copy())
-                query_IO_lst.append(query_IO)
-                query_memory_M_lst.append(query_memory_M)
+                if query_IO:
+                    query_IO_lst.append(query_IO)
+                if query_memory_M:
+                    query_memory_M_lst.append(query_memory_M)
                 considered_per_ioc[ioc] += 1
                 subgraph.clear()
     else:
@@ -1032,8 +1034,10 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
                         _,subgraph,query_memory_M, query_IO = tmp_suspGraphs
                         if subgraph:
                             suspGraphs.append(subgraph.copy())
-                            query_IO_lst.append(query_IO)
-                            query_memory_M_lst.append(query_memory_M)
+                            if query_IO:
+                                query_IO_lst.append(query_IO)
+                            if query_memory_M:
+                                query_memory_M_lst.append(query_memory_M)
                             considered_per_ioc[ioc] += 1
                             subgraph.clear()
 
@@ -1089,8 +1093,10 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
                 if subgraph:
                     if subgraph.number_of_nodes() >= args.min_nodes and subgraph.number_of_nodes() <= args.max_nodes:
                         benignSubGraphs.append(subgraph.copy())
-                        query_IO_lst.append(query_IO)
-                        query_memory_M_lst.append(query_memory_M)
+                        if query_IO:
+                            query_IO_lst.append(query_IO)
+                        if query_memory_M:
+                            query_memory_M_lst.append(query_memory_M)
                     subgraph.clear()
             seed_number = cores
     else:
@@ -1106,8 +1112,10 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
                 if subgraph:
                     if subgraph.number_of_nodes() >= args.min_nodes and subgraph.number_of_nodes() <= args.max_nodes:
                         benignSubGraphs.append(subgraph.copy())
-                        query_IO_lst.append(query_IO)
-                        query_memory_M_lst.append(query_memory_M)
+                        if query_IO:
+                            query_IO_lst.append(query_IO)
+                        if query_memory_M:
+                            query_memory_M_lst.append(query_memory_M)
                     subgraph.clear()
                 if len(benignSubGraphs) >= n_subgraphs:
                     break
