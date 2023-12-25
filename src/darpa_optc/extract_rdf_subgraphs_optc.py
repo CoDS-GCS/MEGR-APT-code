@@ -871,7 +871,7 @@ def Traverse_rdf(params):
                                           bindings={'IOC_node': node}, limit=(rand_limit))
             except Exception as e:
                 print("Error in Querying subgraph with seed", node, e)
-                return None, None
+                return None, None, None, None
         else:
             if args.traverse_with_time:
                 try:
@@ -880,7 +880,7 @@ def Traverse_rdf(params):
                     query_memory_M, query_IO = parse_profiled_query(explain_query)
                 except Exception as e:
                     print("Error in Querying subgraph with seed", node, e)
-                    return None, None
+                    return None, None, None, None
             else:
                 try:
                     csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
@@ -888,7 +888,7 @@ def Traverse_rdf(params):
                     query_memory_M, query_IO = parse_profiled_query(explain_query)
                 except Exception as e:
                     print("Error in Querying subgraph with seed", node, e)
-                    return None, None
+                    return None, None, None, None
         subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
     else:
         subgraphTriples = pd.DataFrame()
@@ -910,7 +910,7 @@ def Traverse_rdf(params):
                 if len(subgraphTriples) > max_edges:
                     break
             else:
-                return None, None
+                return None, None, None, None
 
         # subgraphTriples = traverse_with_small_queries(node, graph_sparql_queries)
     if len(subgraphTriples) > max_edges:
