@@ -59,10 +59,10 @@ def print_memory_cpu_usage(message=None):
     print(message)
     print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
     print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
-    print('The CPU usage is (per process): ', psutil.Process(os.getpid()).cpu_percent(0))
-    # load1, load5, load15 = psutil.getloadavg()
-    # cpu_usage = (load15 / os.cpu_count()) * 100
-    # print("The CPU usage is : ", cpu_usage)
+    print('The CPU usage is (per process): ', psutil.Process(os.getpid()).cpu_percent(4))
+    load1, load5, load15 = psutil.getloadavg()
+    cpu_usage = (load15 / os.cpu_count()) * 100
+    print("The CPU usage is : ", cpu_usage)
     print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
           psutil.virtual_memory().percent)
     return
@@ -1351,6 +1351,7 @@ def main():
 
     print("Total IOPS (over total time, including extraction query IO ):",
           (io_counters[0] + io_counters[1] + sum(query_IO_lst)) / (time.time() - start_running_time))
+    print("Total extraction query IO",sum(query_IO_lst))
     print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
     print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst), "M")
     print("Min occupied memory by subgraph extraction queries:", min(query_memory_M_lst), "M")
