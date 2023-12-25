@@ -790,15 +790,16 @@ def isfloat(val):
 def is_number(val):
     return isint(val) or isfloat(val)
 def parse_profiled_query(explain_query):
-    global query_memory_M_lst, query_IO_lst, query_time_IOPS_lst
+    global query_memory_M_lst, query_IO_lst
+    # global query_time_IOPS_lst
     lines = explain_query.split('\n')
     query_IO_time = [float(number) for number in lines[1].split() if is_number(number)]
     if len(query_IO_time) == 2:
         query_IO = query_IO_time[1]
         query_IO_lst.append(query_IO)
-        if query_IO_time[0] != 0:
-            query_time_s = query_IO_time[0] / 1000
-            query_time_IOPS_lst.append(query_IO / query_time_s)
+        # if query_IO_time[0] != 0:
+        #     query_time_s = query_IO_time[0] / 1000
+        #     query_time_IOPS_lst.append(query_IO / query_time_s)
     else:
         print("Unable to parse", lines[1])
 
@@ -812,7 +813,7 @@ def parse_profiled_query(explain_query):
     elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000
         query_memory_M_lst.append(query_memory_M)
-    elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
+    elif (query_memory[-1].upper() == 'B') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000000
         query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'G') and is_number(query_memory[:-1]):
@@ -1334,8 +1335,8 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     
 def main():
     start_running_time = time.time()
-    global query_memory_M_lst , query_IO_lst, query_time_IOPS_lst
-    query_memory_M_lst, query_IO_lst, query_time_IOPS_lst = [],[],[]
+    global query_memory_M_lst , query_IO_lst
+    query_memory_M_lst, query_IO_lst = [],[]
     random.seed(123)
     print(args)
     if args.parallel:
@@ -1375,7 +1376,7 @@ def main():
     program_IOPs = (io_counters[0] + io_counters[1]) / (time.time() - start_running_time)
     print("program IOPS (over total time): ", program_IOPs)
     print("I/O counters", io_counters)
-    print("Average IOPS by subgraph extraction queries:", mean(query_time_IOPS_lst))
+    # print("Average IOPS by subgraph extraction queries:", mean(query_time_IOPS_lst))
 
     print("Total IOPS (over total time, including extraction query IO ):",
           (io_counters[0] + io_counters[1] + sum(query_IO_lst)) / (time.time() - start_running_time))
