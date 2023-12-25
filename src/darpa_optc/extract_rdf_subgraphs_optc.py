@@ -975,11 +975,11 @@ def Traverse_rdf(params):
         if row['type'] == 'process':
             attributes_df[row['uuid']] = handle_query(row,graph_sparql_queries['Process_attributes'],Node_pattern)
         elif row['type'] == 'file':
-            attributes_df[row['uuid']] = handle_query(graph_sparql_queries['File_attributes'], Node_pattern)
+            attributes_df[row['uuid']] = handle_query(row,graph_sparql_queries['File_attributes'], Node_pattern)
         elif row['type'] == 'flow':
-            attributes_df[row['uuid']] = handle_query(graph_sparql_queries['Flow_attributes'], Node_pattern)
+            attributes_df[row['uuid']] = handle_query(row,graph_sparql_queries['Flow_attributes'], Node_pattern)
         elif row['type'] == 'shell':
-            attributes_df[row['uuid']] = handle_query(graph_sparql_queries['Shell_attributes'], Node_pattern)
+            attributes_df[row['uuid']] = handle_query(row,graph_sparql_queries['Shell_attributes'], Node_pattern)
         else:
             print("Undefined node type", row['type'])
     nx.set_node_attributes(subgraph, attributes_df)
