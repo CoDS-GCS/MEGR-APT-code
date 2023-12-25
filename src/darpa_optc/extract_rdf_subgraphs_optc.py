@@ -177,7 +177,6 @@ sparql_queries = {'Query_Suspicious_IP': """
     } 
 
 """,
-                  
                   'Extract_Suspicious_Subgraph_NoTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/> 
     SELECT  DISTINCT ?subject ?predicate ?object {
@@ -599,6 +598,7 @@ sparql_queries = {'Query_Suspicious_IP': """
     }   LIMIT <MAX_EDGES> 
  """,
 'Extract_Benign_Subgraph_NoTime_L': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/> 
     #2- backward
     SELECT DISTINCT ?subject ?predicate ?object 
     WHERE {
@@ -609,6 +609,7 @@ sparql_queries = {'Query_Suspicious_IP': """
     } LIMIT <MAX_EDGES> 
 """,
 'Extract_Benign_Subgraph_NoTime_RR': """             
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/> 
     # 3-a forward from all first neighbours  
     SELECT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
     WHERE {
@@ -627,7 +628,8 @@ sparql_queries = {'Query_Suspicious_IP': """
     }    LIMIT <MAX_EDGES>
 """,
 'Extract_Benign_Subgraph_NoTime_RL': """
-     # 3-b forward from all first neighbours  
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/> 
+    # 3-b forward from all first neighbours  
     SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)  
     WHERE {
         ?first_subject ?next_predicate ?next_object
@@ -645,6 +647,7 @@ sparql_queries = {'Query_Suspicious_IP': """
     } LIMIT <MAX_EDGES>
 """,
 'Extract_Benign_Subgraph_NoTime_LR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/> 
     #4-a Backward from all first neighbours  
     SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) 
     WHERE {
@@ -663,7 +666,8 @@ sparql_queries = {'Query_Suspicious_IP': """
     }    LIMIT <MAX_EDGES> 
 """,
 'Extract_Benign_Subgraph_NoTime_LL': """
-     #4-b Backward from all first neighbours  
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/> 
+    #4-b Backward from all first neighbours  
     SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) 
     WHERE {
         ?next_subject ?next_predicate ?first_subject .
@@ -849,10 +853,10 @@ def traverse_with_a_query(node,query):
 def Traverse_rdf(params):
     traverse_time = time.time()
     global max_edges,max_nodes
-    global graph_sparql_queries
-    # graph_sparql_queries = params[0]
-    ioc = params[0]
-    node = params[1]
+    # global graph_sparql_queries
+    graph_sparql_queries = params[0]
+    ioc = params[1]
+    node = params[2]
     node = "\"" + node + "\""
     if args.extract_with_one_query:
         if args.training:
@@ -863,16 +867,11 @@ def Traverse_rdf(params):
             except Exception as e:
                 print("Error in Querying subgraph with seed", node, e)
                 return None, None
-            subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
         else:
             if args.traverse_with_time:
                 try:
-                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
-                                              content_type='text/csv',
-                                              bindings={'IOC_node': node}, limit=(max_edges + 10))
-                    explain_query = conn.explain(
-                        graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),
-                        profile=True)
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
+                    explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),profile=True)
                     parse_profiled_query(explain_query)
                 except Exception as e:
                     print("Error in Querying subgraph with seed", node, e)
@@ -1002,8 +1001,8 @@ def Traverse_rdf(params):
     return ioc,subgraph
 
 
-def extract_suspGraphs_depth_rdf(suspicious_nodes, all_suspicious_nodes):
-    global graph_sparql_queries
+def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_suspicious_nodes):
+    # global graph_sparql_queries
     start_time = time.time()
     start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     suspGraphs = []
@@ -1020,7 +1019,7 @@ def extract_suspGraphs_depth_rdf(suspicious_nodes, all_suspicious_nodes):
         cores = multiprocessing.cpu_count() - 2
         if len(all_suspicious_nodes) < cores:
             cores = len(all_suspicious_nodes)
-        multi_queries = [[ioc, node] for ioc,nodes in matched_ioc_mask.items() for node in nodes if len(nodes) > 0]
+        multi_queries = [[graph_sparql_queries,ioc, node] for ioc,nodes in matched_ioc_mask.items() for node in nodes if len(nodes) > 0]
         suspicious_nodes_dask = db.from_sequence(multi_queries, npartitions=cores)
         tmp_suspGraphs = suspicious_nodes_dask.map(lambda g: Traverse_rdf(g)).compute()
         tmp_suspGraphs = [suspGraphs for suspGraphs in tmp_suspGraphs if suspGraphs is not None]
@@ -1033,7 +1032,7 @@ def extract_suspGraphs_depth_rdf(suspicious_nodes, all_suspicious_nodes):
         for ioc,nodes in matched_ioc_mask.items():
             if len(nodes) > 0:
                 for node in nodes:
-                    tmp_suspGraphs = Traverse_rdf([ioc, node])
+                    tmp_suspGraphs = Traverse_rdf([graph_sparql_queries, ioc, node])
                     if tmp_suspGraphs:
                         _,subgraph = tmp_suspGraphs
                         if subgraph:
@@ -1070,8 +1069,8 @@ def extract_suspGraphs_depth_rdf(suspicious_nodes, all_suspicious_nodes):
     return suspGraphs
 
 
-def Extract_Random_Benign_Subgraphs(n_subgraphs):
-    global graph_sparql_queries
+def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
+    # global graph_sparql_queries
     start_time = time.time()
     benignSubGraphs = []
     if args.parallel:
@@ -1084,7 +1083,7 @@ def Extract_Random_Benign_Subgraphs(n_subgraphs):
             benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
             print("Number of Random Benign Seed Nodes:", len(benign_nodes))
             benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
-            multi_queries = [["na", node] for node in benign_nodes]
+            multi_queries = [[graph_sparql_queries, "na", node] for node in benign_nodes]
             benign_nodes_dask = db.from_sequence(multi_queries, npartitions=cores)
             tmp_benignSubGraphs = benign_nodes_dask.map(lambda g: Traverse_rdf(g)).compute()
             tmp_benignSubGraphs = [benignSubGraphs for benignSubGraphs in tmp_benignSubGraphs if benignSubGraphs is not None]
@@ -1101,7 +1100,7 @@ def Extract_Random_Benign_Subgraphs(n_subgraphs):
         benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
         print("Number of Random Benign Seed Nodes:", len(benign_nodes))
         for node in benign_nodes:
-            tmp_benignSubGraph = Traverse_rdf(["na", node])
+            tmp_benignSubGraph = Traverse_rdf([graph_sparql_queries, "na", node])
             if tmp_benignSubGraph:
                 _,subgraph = tmp_benignSubGraph
                 if subgraph:
@@ -1230,7 +1229,7 @@ def convert_to_torch_data(training_graphs, testing_graphs):
 
 
 def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
-    global graph_sparql_queries
+    # global graph_sparql_queries
     start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     one_graph_time = time.time()
     global max_edges,max_nodes
@@ -1240,9 +1239,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     print("Extract Subgraphs From", GRAPH_NAME)
     graph_sparql_queries = copy.deepcopy(sparql_queries)
     for sparql_name, sparql_query in graph_sparql_queries.items():
-        graph_sparql_queries[sparql_name] = sparql_query.replace("<Query>", query_pattern).replace("<GRAPH_NAME>",
-                                                                                                   GRAPH_NAME).replace(
-            "<MAX_EDGES>", str(max_edges + 10))
+        graph_sparql_queries[sparql_name] = sparql_query.replace("<Query>", query_pattern).replace("<GRAPH_NAME>",GRAPH_NAME).replace("<MAX_EDGES>", str(max_edges + 10))
     suspicious_nodes, all_suspicious_nodes = label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name)
     if len(all_suspicious_nodes) == 0:
         print("No suspicious Nodes in ", GRAPH_NAME, "with", query_graph_name)
@@ -1251,7 +1248,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
         print_memory_cpu_usage("Extraction")
         return
-    suspSubGraphs = extract_suspGraphs_depth_rdf(suspicious_nodes,all_suspicious_nodes)
+    suspSubGraphs = extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes,all_suspicious_nodes)
     if len(suspSubGraphs) == 0:
         print("No suspicious subgraphs in", GRAPH_NAME, "with", query_graph_name)
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
