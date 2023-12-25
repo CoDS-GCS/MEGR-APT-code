@@ -790,13 +790,13 @@ def isfloat(val):
 def is_number(val):
     return isint(val) or isfloat(val)
 def parse_profiled_query(explain_query):
-    global query_memory_M_lst, query_IO_lst
+    # global query_memory_M_lst, query_IO_lst
     # global query_time_IOPS_lst
     lines = explain_query.split('\n')
     query_IO_time = [float(number) for number in lines[1].split() if is_number(number)]
     if len(query_IO_time) == 2:
         query_IO = query_IO_time[1]
-        query_IO_lst.append(query_IO)
+        # query_IO_lst.append(query_IO)
         # if query_IO_time[0] != 0:
         #     query_time_s = query_IO_time[0] / 1000
         #     query_time_IOPS_lst.append(query_IO / query_time_s)
@@ -806,22 +806,22 @@ def parse_profiled_query(explain_query):
     query_memory = lines[2].split()[-1]
     if (query_memory[-1].upper() == 'M') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1])
-        query_memory_M_lst.append(query_memory_M)
+        # query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-2:] == 'M,') and is_number(query_memory[:-2]):
         query_memory_M = float(query_memory[:-2])
-        query_memory_M_lst.append(query_memory_M)
+        # query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000
-        query_memory_M_lst.append(query_memory_M)
+        # query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'B') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000000
-        query_memory_M_lst.append(query_memory_M)
+        # query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'G') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) * 1000
-        query_memory_M_lst.append(query_memory_M)
+        # query_memory_M_lst.append(query_memory_M)
     else:
         print("Unable to parse", lines[2])
-    return
+    return query_memory_M, query_IO
 
 
 # def traverse_with_small_queries(node,graph_sparql_queries):
@@ -858,11 +858,11 @@ def Traverse_rdf(params):
             csv_results = conn.select(query, content_type='text/csv', bindings={'IOC_node': node},
                                       limit=(max_edges + 10))
             explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
-            parse_profiled_query(explain_query)
+            query_memory_M, query_IO = query_memory_M, query_IO = parse_profiled_query(explain_query)
         except Exception as e:
             print("Error in Querying subgraph with seed", node, e)
             return None
-        return csv_results
+        return csv_results, query_memory_M, query_IO
     if args.extract_with_one_query:
         if args.training:
             rand_limit = random.randint((max_edges / 10), max_edges)
@@ -877,7 +877,7 @@ def Traverse_rdf(params):
                 try:
                     csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
                     explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),profile=True)
-                    parse_profiled_query(explain_query)
+                    query_memory_M, query_IO = parse_profiled_query(explain_query)
                 except Exception as e:
                     print("Error in Querying subgraph with seed", node, e)
                     return None, None
@@ -885,7 +885,7 @@ def Traverse_rdf(params):
                 try:
                     csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
                     explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node), profile=True)
-                    parse_profiled_query(explain_query)
+                    query_memory_M, query_IO = parse_profiled_query(explain_query)
                 except Exception as e:
                     print("Error in Querying subgraph with seed", node, e)
                     return None, None
@@ -901,7 +901,7 @@ def Traverse_rdf(params):
                 query_name = "Extract_Suspicious_Subgraph_NoTime_"
         for direction in ["RR", "RL", "LR", "LL", 'R', 'L']:
             query_name_tmp = query_name + direction
-            csv_results = traverse_with_a_query(node, graph_sparql_queries[query_name_tmp])
+            csv_results, query_memory_M, query_IO = traverse_with_a_query(node, graph_sparql_queries[query_name_tmp])
             if csv_results:
                 subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
                 subgraphTriples = pd.concat([subgraphTriples, subgraphTriples_tmp], ignore_index=True, sort=False)
@@ -955,73 +955,33 @@ def Traverse_rdf(params):
     nodes_df_o[["uuid", "type"]] = subgraphTriples[["object_uuid", "object_type"]]
     nodes_df = pd.concat([nodes_df_s, nodes_df_o], ignore_index=True)
     nodes_df_s, nodes_df_o, subgraphTriples = None, None, None
-    def handle_query(query, node):
+    def handle_query(row, query, node):
         try:
             csv_results = conn.select(query, content_type='text/csv', bindings={'Node': node})
             temp_df = pd.read_csv(io.BytesIO(csv_results))
+            if temp_df.empty:
+                attributes_df_tmp = {'type': row['type']}
+            else:
+                temp_df['type'] = row['type']
+                attributes_df_tmp = temp_df.to_dict('records')[0]
         except Exception as e:
             print("Error in Querying attributes for node", node, e)
-            temp_df = pd.DataFrame()
-        return temp_df
+            attributes_df_tmp = {'type': row['type']}
+        return attributes_df_tmp
     nodes_df = nodes_df.drop_duplicates()
     attributes_df = {}
     for index, row in nodes_df.iterrows():
         Node_pattern = "\"" + str(row['uuid']) + "\""
         if row['type'] == 'process':
-            temp_df = handle_query(graph_sparql_queries['Process_attributes'],Node_pattern)
-            # try:
-            #     csv_results = conn.select(graph_sparql_queries['Process_attributes'], content_type='text/csv', bindings={'Node': Node_pattern})
-            #     temp_df = pd.read_csv(io.BytesIO(csv_results))
-            # except Exception as e:
-            #     print("Error in Querying attributes for node", node, e)
-            #     attributes_df[row['uuid']] = {'type': row['type']}
-            if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': row['type']}
-            else:
-                temp_df['type'] = row['type']
-                attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'file':
-            temp_df = handle_query(graph_sparql_queries['File_attributes'], Node_pattern)
-            # try:
-            #     csv_results = conn.select(graph_sparql_queries['File_attributes'], content_type='text/csv',
-            #                               bindings={'Node': Node_pattern})
-            #     temp_df = pd.read_csv(io.BytesIO(csv_results))
-            # except Exception as e:
-            #     print("Error in Querying attributes for node", node, e)
-            #     attributes_df[row['uuid']] = {'type': row['type']}
-            if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': row['type']}
-            else:
-                temp_df['type'] = row['type']
-                attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'flow':
-            temp_df = handle_query(graph_sparql_queries['Flow_attributes'], Node_pattern)
-            # try:
-            #     csv_results = conn.select(graph_sparql_queries['Flow_attributes'], content_type='text/csv',
-            #                               bindings={'Node': Node_pattern})
-            #     temp_df = pd.read_csv(io.BytesIO(csv_results))
-            # except Exception as e:
-            #     print("Error in Querying attributes for node", node, e)
-            #     attributes_df[row['uuid']] = {'type': row['type']}
-            if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': row['type']}
-            else:
-                temp_df['type'] = row['type']
-                attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
-        if row['type'] == 'shell':
-            temp_df = handle_query(graph_sparql_queries['Shell_attributes'], Node_pattern)
-            # try:
-            #     csv_results = conn.select(graph_sparql_queries['Shell_attributes'], content_type='text/csv',
-            #                               bindings={'Node': Node_pattern})
-            #     temp_df = pd.read_csv(io.BytesIO(csv_results))
-            # except Exception as e:
-            #     print("Error in Querying attributes for node", node, e)
-            #     attributes_df[row['uuid']] = {'type': row['type']}
-            if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': row['type']}
-            else:
-                temp_df['type'] = row['type']
-                attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
+            attributes_df[row['uuid']] = handle_query(row,graph_sparql_queries['Process_attributes'],Node_pattern)
+        elif row['type'] == 'file':
+            attributes_df[row['uuid']] = handle_query(graph_sparql_queries['File_attributes'], Node_pattern)
+        elif row['type'] == 'flow':
+            attributes_df[row['uuid']] = handle_query(graph_sparql_queries['Flow_attributes'], Node_pattern)
+        elif row['type'] == 'shell':
+            attributes_df[row['uuid']] = handle_query(graph_sparql_queries['Shell_attributes'], Node_pattern)
+        else:
+            print("Undefined node type", row['type'])
     nx.set_node_attributes(subgraph, attributes_df)
     attributes_df, nodes_df, temp_df = None, None, None
     if (subgraph.number_of_nodes() < args.min_nodes) or (subgraph.number_of_nodes() > max_nodes):
@@ -1030,11 +990,12 @@ def Traverse_rdf(params):
         return None, None
     print("Extracted a suspicious subgraph with", subgraph.number_of_nodes(), "nodes, and ", subgraph.number_of_edges(), "edges")
     print("Traversed in ", time.time() - traverse_time, "seconds")
-    return ioc,subgraph
+    return ioc,subgraph, query_memory_M, query_IO
 
 
 def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_suspicious_nodes):
     # global graph_sparql_queries
+    global query_memory_M_lst, query_IO_lst
     start_time = time.time()
     start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     suspGraphs = []
@@ -1055,9 +1016,11 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
         suspicious_nodes_dask = db.from_sequence(multi_queries, npartitions=cores)
         tmp_suspGraphs = suspicious_nodes_dask.map(lambda g: Traverse_rdf(g)).compute()
         tmp_suspGraphs = [suspGraphs for suspGraphs in tmp_suspGraphs if suspGraphs is not None]
-        for ioc,subgraph in tmp_suspGraphs:
+        for ioc,subgraph,query_memory_M, query_IO in tmp_suspGraphs:
             if subgraph:
                 suspGraphs.append(subgraph.copy())
+                query_IO_lst.append(query_IO)
+                query_memory_M_lst.append(query_memory_M)
                 considered_per_ioc[ioc] += 1
                 subgraph.clear()
     else:
@@ -1066,11 +1029,14 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
                 for node in nodes:
                     tmp_suspGraphs = Traverse_rdf([graph_sparql_queries, ioc, node])
                     if tmp_suspGraphs:
-                        _,subgraph = tmp_suspGraphs
+                        _,subgraph,query_memory_M, query_IO = tmp_suspGraphs
                         if subgraph:
                             suspGraphs.append(subgraph.copy())
+                            query_IO_lst.append(query_IO)
+                            query_memory_M_lst.append(query_memory_M)
                             considered_per_ioc[ioc] += 1
                             subgraph.clear()
+
     # clear Suspicious Nodes Labels
     conn.update(graph_sparql_queries['Delete_Suspicious_Labels'])
     # Add ioc attributes
@@ -1119,10 +1085,12 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
             benign_nodes_dask = db.from_sequence(multi_queries, npartitions=cores)
             tmp_benignSubGraphs = benign_nodes_dask.map(lambda g: Traverse_rdf(g)).compute()
             tmp_benignSubGraphs = [benignSubGraphs for benignSubGraphs in tmp_benignSubGraphs if benignSubGraphs is not None]
-            for _,subgraph in tmp_benignSubGraphs:
+            for _,subgraph,query_memory_M, query_IO in tmp_benignSubGraphs:
                 if subgraph:
                     if subgraph.number_of_nodes() >= args.min_nodes and subgraph.number_of_nodes() <= args.max_nodes:
                         benignSubGraphs.append(subgraph.copy())
+                        query_IO_lst.append(query_IO)
+                        query_memory_M_lst.append(query_memory_M)
                     subgraph.clear()
             seed_number = cores
     else:
@@ -1134,10 +1102,12 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
         for node in benign_nodes:
             tmp_benignSubGraph = Traverse_rdf([graph_sparql_queries, "na", node])
             if tmp_benignSubGraph:
-                _,subgraph = tmp_benignSubGraph
+                _,subgraph,query_memory_M, query_IO = tmp_benignSubGraph
                 if subgraph:
                     if subgraph.number_of_nodes() >= args.min_nodes and subgraph.number_of_nodes() <= args.max_nodes:
                         benignSubGraphs.append(subgraph.copy())
+                        query_IO_lst.append(query_IO)
+                        query_memory_M_lst.append(query_memory_M)
                     subgraph.clear()
                 if len(benignSubGraphs) >= n_subgraphs:
                     break
