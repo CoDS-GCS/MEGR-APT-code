@@ -47,7 +47,7 @@ preprocess_graph () {
     specific_QG=$3
     QG_folder=$4
     QG_IOCs=$5
-    sleep 3
+    sleep 60
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
     
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"

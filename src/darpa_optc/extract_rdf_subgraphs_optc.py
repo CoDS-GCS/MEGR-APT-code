@@ -100,8 +100,7 @@ def release_memory(client):
     time.sleep(5)
     
 database_name, connection_details = get_stardog_cred(args.database_name)
-conn = stardog.Connection(database_name, **connection_details)
-
+# conn = stardog.Connection(database_name, **connection_details)
 
 def explore_graph(g):
     print("Number of nodes: ", g.number_of_nodes())
@@ -730,6 +729,7 @@ WHERE {
 
 def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     start_mem = getrusage(RUSAGE_SELF).ru_maxrss
+    conn = stardog.Connection(database_name, **connection_details)
     start_time = time.time()
     with open(args.ioc_file) as f:
         query_graphs_IOCs = json.load(f)
@@ -769,6 +769,7 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     print_memory_cpu_usage("Labelling candidate nodes")
     if args.training:
         return
+    conn.close()
     return suspicious_nodes, all_suspicious_nodes
 
 
@@ -815,6 +816,7 @@ def parse_profiled_query(explain_query):
 
 
 def Traverse_rdf(params):
+    conn = stardog.Connection(database_name, **connection_details)
     traverse_time = time.time()
     global max_edges,max_nodes
     graph_sparql_queries = params[0]
@@ -824,7 +826,7 @@ def Traverse_rdf(params):
     def traverse_with_a_query(node, query):
         try:
             csv_results = conn.select(query, content_type='text/csv', bindings={'IOC_node': node},
-                                      limit=(max_edges + 10))
+                                      limit=(max_edges + 10),timeout=300000)
             explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
             query_memory_M, query_IO = parse_profiled_query(explain_query)
         except Exception as e:
@@ -836,14 +838,14 @@ def Traverse_rdf(params):
             rand_limit = random.randint((max_edges / 10), max_edges)
             try:
                 csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_NoTime'], content_type='text/csv',
-                                          bindings={'IOC_node': node}, limit=(rand_limit))
+                                          bindings={'IOC_node': node}, limit=(rand_limit),timeout=300000)
             except Exception as e:
                 print("Error in Querying subgraph with seed", node, e)
                 return None, None, None, None
         else:
             if args.traverse_with_time:
                 try:
-                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10),timeout=300000)
                     explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),profile=True)
                     query_memory_M, query_IO = parse_profiled_query(explain_query)
                 except Exception as e:
@@ -851,7 +853,7 @@ def Traverse_rdf(params):
                     return None, None, None, None
             else:
                 try:
-                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10),timeout=300000)
                     explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node), profile=True)
                     query_memory_M, query_IO = parse_profiled_query(explain_query)
                 except Exception as e:
@@ -958,10 +960,12 @@ def Traverse_rdf(params):
         return None, None, None, None
     print("Extracted a suspicious subgraph with", subgraph.number_of_nodes(), "nodes, and ", subgraph.number_of_edges(), "edges")
     print("Traversed in ", time.time() - traverse_time, "seconds")
+    conn.close()
     return ioc,subgraph, query_memory_M, query_IO
 
 
 def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_suspicious_nodes):
+    conn = stardog.Connection(database_name, **connection_details)
     # global graph_sparql_queries
     global query_memory_M_lst, query_IO_lst
     start_time = time.time()
@@ -1036,6 +1040,7 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
     construct_mem = getrusage(RUSAGE_SELF).ru_maxrss - start_mem
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
     print_memory_cpu_usage()
+    conn.close()
     return suspGraphs
 
 
@@ -1276,6 +1281,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
     print("\n Extraction Memory usage: ", extraction_mem / 1024, "MB (based on resource - ru_maxrss)")
     print_memory_cpu_usage("Extraction")
+    # conn.close()
     return
 
     
