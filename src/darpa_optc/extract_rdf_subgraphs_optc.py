@@ -829,7 +829,7 @@ def Traverse_rdf(params):
             query_memory_M, query_IO = parse_profiled_query(explain_query)
         except Exception as e:
             print("Error in Querying subgraph with seed", node, e)
-            return None
+            return None, None, None
         return csv_results, query_memory_M, query_IO
     if args.extract_with_one_query:
         if args.training:
