@@ -689,7 +689,7 @@ PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?command_lines ?image_paths
 WHERE {
     ?s <GRAPH_NAME>:uuid ?Node .
-    # ?s rdf:type "process" . 
+    ?s rdf:type "process" . 
     ?s <GRAPH_NAME>:attributes ?_attr .
     ?_attr <GRAPH_NAME>:command_lines ?command_lines .
     ?_attr <GRAPH_NAME>:image_paths ?image_paths .
@@ -700,7 +700,7 @@ PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?file_paths
 WHERE {
     ?s <GRAPH_NAME>:uuid ?Node .
-    # ?s rdf:type "file" . 
+    ?s rdf:type "file" . 
     ?s <GRAPH_NAME>:attributes ?_attr .
     ?_attr <GRAPH_NAME>:file_paths ?file_paths .
 }
@@ -710,7 +710,7 @@ PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?src_ip ?dest_ip 
 WHERE {
     ?s <GRAPH_NAME>:uuid ?Node .
-    # ?s rdf:type "flow" .
+    ?s rdf:type "flow" .
     ?s <GRAPH_NAME>:attributes ?_attr .
     ?_attr <GRAPH_NAME>:remote_ip ?src_ip .
     ?_attr <GRAPH_NAME>:local_ip ?dest_ip .
@@ -721,7 +721,7 @@ PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?image_paths  
 WHERE {
     ?s <GRAPH_NAME>:uuid ?Node .
-    # ?s rdf:type "shell" .
+    ?s rdf:type "shell" .
     ?s <GRAPH_NAME>:attributes ?_attr .
     ?_attr <GRAPH_NAME>:image_paths ?image_paths .
 }
