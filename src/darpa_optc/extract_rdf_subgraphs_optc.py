@@ -871,16 +871,16 @@ def Traverse_rdf(params):
             if args.traverse_with_time:
                 try:
                     csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
-                    explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),profile=True)
-                    parse_profiled_query(explain_query)
+                    # explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),profile=True)
+                    # parse_profiled_query(explain_query)
                 except Exception as e:
                     print("Error in Querying subgraph with seed", node, e)
                     return None, None
             else:
                 try:
                     csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
-                    explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node), profile=True)
-                    parse_profiled_query(explain_query)
+                    # explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node), profile=True)
+                    # parse_profiled_query(explain_query)
                 except Exception as e:
                     print("Error in Querying subgraph with seed", node, e)
                     return None, None
@@ -955,8 +955,7 @@ def Traverse_rdf(params):
     for index, row in nodes_df.iterrows():
         Node_pattern = "\"" + str(row['uuid']) + "\""
         if row['type'] == 'process':
-            csv_results = conn.select(graph_sparql_queries['Process_attributes'], content_type='text/csv',
-                                      bindings={'Node': Node_pattern})
+            csv_results = conn.select(graph_sparql_queries['Process_attributes'], content_type='text/csv', bindings={'Node': Node_pattern})
             temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
