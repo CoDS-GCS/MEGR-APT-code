@@ -689,7 +689,7 @@ PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?command_lines ?image_paths
 WHERE {
     ?s <GRAPH_NAME>:uuid ?Node .
-    ?s rdf:type "process" . 
+    # ?s rdf:type "process" . 
     ?s <GRAPH_NAME>:attributes ?_attr .
     ?_attr <GRAPH_NAME>:command_lines ?command_lines .
     ?_attr <GRAPH_NAME>:image_paths ?image_paths .
@@ -700,7 +700,7 @@ PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?file_paths
 WHERE {
     ?s <GRAPH_NAME>:uuid ?Node .
-    ?s rdf:type "file" . 
+    # ?s rdf:type "file" . 
     ?s <GRAPH_NAME>:attributes ?_attr .
     ?_attr <GRAPH_NAME>:file_paths ?file_paths .
 }
@@ -710,7 +710,7 @@ PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?src_ip ?dest_ip 
 WHERE {
     ?s <GRAPH_NAME>:uuid ?Node .
-    ?s rdf:type "flow" .
+    # ?s rdf:type "flow" .
     ?s <GRAPH_NAME>:attributes ?_attr .
     ?_attr <GRAPH_NAME>:remote_ip ?src_ip .
     ?_attr <GRAPH_NAME>:local_ip ?dest_ip .
@@ -721,7 +721,7 @@ PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_optc/<GRAPH_NAME>/>
 SELECT ?image_paths  
 WHERE {
     ?s <GRAPH_NAME>:uuid ?Node .
-    ?s rdf:type "shell" .
+    # ?s rdf:type "shell" .
     ?s <GRAPH_NAME>:attributes ?_attr .
     ?_attr <GRAPH_NAME>:image_paths ?image_paths .
 }
@@ -850,6 +850,15 @@ def traverse_with_a_query(node,query):
 #         if len(subgraphTriples) > max_edges:
 #             break
 #     return subgraphTriples
+
+def handle_query(query,node):
+    try:
+        csv_results = conn.select(query, content_type='text/csv',bindings={'Node': node})
+        temp_df = pd.read_csv(io.BytesIO(csv_results))
+    except Exception as e:
+        print("Error in Querying attributes for node", node, e)
+        temp_df = pd.DataFrame()
+    return temp_df
 def Traverse_rdf(params):
     traverse_time = time.time()
     global max_edges,max_nodes
@@ -955,35 +964,39 @@ def Traverse_rdf(params):
     for index, row in nodes_df.iterrows():
         Node_pattern = "\"" + str(row['uuid']) + "\""
         if row['type'] == 'process':
-            csv_results = conn.select(graph_sparql_queries['Process_attributes'], content_type='text/csv', bindings={'Node': Node_pattern})
-            temp_df = pd.read_csv(io.BytesIO(csv_results))
+            temp_df = handle_query(graph_sparql_queries['Process_attributes'],Node_pattern)
+            # csv_results = conn.select(graph_sparql_queries['Process_attributes'], content_type='text/csv', bindings={'Node': Node_pattern})
+            # temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
             else:
                 temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
         if row['type'] == 'file':
-            csv_results = conn.select(graph_sparql_queries['File_attributes'], content_type='text/csv',
-                                      bindings={'Node': Node_pattern})
-            temp_df = pd.read_csv(io.BytesIO(csv_results))
+            temp_df = handle_query(graph_sparql_queries['File_attributes'], Node_pattern)
+            # csv_results = conn.select(graph_sparql_queries['File_attributes'], content_type='text/csv',
+            #                           bindings={'Node': Node_pattern})
+            # temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
             else:
                 temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
         if row['type'] == 'flow':
-            csv_results = conn.select(graph_sparql_queries['Flow_attributes'], content_type='text/csv',
-                                      bindings={'Node': Node_pattern})
-            temp_df = pd.read_csv(io.BytesIO(csv_results))
+            temp_df = handle_query(graph_sparql_queries['Flow_attributes'], Node_pattern)
+            # csv_results = conn.select(graph_sparql_queries['Flow_attributes'], content_type='text/csv',
+            #                           bindings={'Node': Node_pattern})
+            # temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
             else:
                 temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
         if row['type'] == 'shell':
-            csv_results = conn.select(graph_sparql_queries['Shell_attributes'], content_type='text/csv',
-                                      bindings={'Node': Node_pattern})
-            temp_df = pd.read_csv(io.BytesIO(csv_results))
+            temp_df = handle_query(graph_sparql_queries['Shell_attributes'], Node_pattern)
+            # csv_results = conn.select(graph_sparql_queries['Shell_attributes'], content_type='text/csv',
+            #                           bindings={'Node': Node_pattern})
+            # temp_df = pd.read_csv(io.BytesIO(csv_results))
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
             else:
