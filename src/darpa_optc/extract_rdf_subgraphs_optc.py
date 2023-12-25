@@ -954,52 +954,68 @@ def Traverse_rdf(params):
     nodes_df_o[["uuid", "type"]] = subgraphTriples[["object_uuid", "object_type"]]
     nodes_df = pd.concat([nodes_df_s, nodes_df_o], ignore_index=True)
     nodes_df_s, nodes_df_o, subgraphTriples = None, None, None
-    def handle_query(query, node):
-        try:
-            csv_results = conn.select(query, content_type='text/csv', bindings={'Node': node})
-            temp_df = pd.read_csv(io.BytesIO(csv_results))
-        except Exception as e:
-            print("Error in Querying attributes for node", node, e)
-            temp_df = pd.DataFrame()
-        return temp_df
+    # def handle_query(query, node):
+    #     try:
+    #         csv_results = conn.select(query, content_type='text/csv', bindings={'Node': node})
+    #         temp_df = pd.read_csv(io.BytesIO(csv_results))
+    #     except Exception as e:
+    #         print("Error in Querying attributes for node", node, e)
+    #         temp_df = pd.DataFrame()
+    #     return temp_df
     nodes_df = nodes_df.drop_duplicates()
     attributes_df = {}
     for index, row in nodes_df.iterrows():
         Node_pattern = "\"" + str(row['uuid']) + "\""
         if row['type'] == 'process':
-            temp_df = handle_query(graph_sparql_queries['Process_attributes'],Node_pattern)
-            # csv_results = conn.select(graph_sparql_queries['Process_attributes'], content_type='text/csv', bindings={'Node': Node_pattern})
-            # temp_df = pd.read_csv(io.BytesIO(csv_results))
+            # temp_df = handle_query(graph_sparql_queries['Process_attributes'],Node_pattern)
+            try:
+                csv_results = conn.select(graph_sparql_queries['Process_attributes'], content_type='text/csv', bindings={'Node': Node_pattern})
+                temp_df = pd.read_csv(io.BytesIO(csv_results))
+            except Exception as e:
+                print("Error in Querying attributes for node", node, e)
+                attributes_df[row['uuid']] = {'type': row['type']}
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
             else:
                 temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
         if row['type'] == 'file':
-            temp_df = handle_query(graph_sparql_queries['File_attributes'], Node_pattern)
-            # csv_results = conn.select(graph_sparql_queries['File_attributes'], content_type='text/csv',
-            #                           bindings={'Node': Node_pattern})
-            # temp_df = pd.read_csv(io.BytesIO(csv_results))
+            # temp_df = handle_query(graph_sparql_queries['File_attributes'], Node_pattern)
+            try:
+                csv_results = conn.select(graph_sparql_queries['File_attributes'], content_type='text/csv',
+                                          bindings={'Node': Node_pattern})
+                temp_df = pd.read_csv(io.BytesIO(csv_results))
+            except Exception as e:
+                print("Error in Querying attributes for node", node, e)
+                attributes_df[row['uuid']] = {'type': row['type']}
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
             else:
                 temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
         if row['type'] == 'flow':
-            temp_df = handle_query(graph_sparql_queries['Flow_attributes'], Node_pattern)
-            # csv_results = conn.select(graph_sparql_queries['Flow_attributes'], content_type='text/csv',
-            #                           bindings={'Node': Node_pattern})
-            # temp_df = pd.read_csv(io.BytesIO(csv_results))
+            # temp_df = handle_query(graph_sparql_queries['Flow_attributes'], Node_pattern)
+            try:
+                csv_results = conn.select(graph_sparql_queries['Flow_attributes'], content_type='text/csv',
+                                          bindings={'Node': Node_pattern})
+                temp_df = pd.read_csv(io.BytesIO(csv_results))
+            except Exception as e:
+                print("Error in Querying attributes for node", node, e)
+                attributes_df[row['uuid']] = {'type': row['type']}
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
             else:
                 temp_df['type'] = row['type']
                 attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
         if row['type'] == 'shell':
-            temp_df = handle_query(graph_sparql_queries['Shell_attributes'], Node_pattern)
-            # csv_results = conn.select(graph_sparql_queries['Shell_attributes'], content_type='text/csv',
-            #                           bindings={'Node': Node_pattern})
-            # temp_df = pd.read_csv(io.BytesIO(csv_results))
+            # temp_df = handle_query(graph_sparql_queries['Shell_attributes'], Node_pattern)
+            try:
+                csv_results = conn.select(graph_sparql_queries['Shell_attributes'], content_type='text/csv',
+                                          bindings={'Node': Node_pattern})
+                temp_df = pd.read_csv(io.BytesIO(csv_results))
+            except Exception as e:
+                print("Error in Querying attributes for node", node, e)
+                attributes_df[row['uuid']] = {'type': row['type']}
             if temp_df.empty:
                 attributes_df[row['uuid']] = {'type': row['type']}
             else:
