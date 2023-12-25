@@ -790,65 +790,33 @@ def isfloat(val):
 def is_number(val):
     return isint(val) or isfloat(val)
 def parse_profiled_query(explain_query):
-    # global query_memory_M_lst, query_IO_lst
-    # global query_time_IOPS_lst
     lines = explain_query.split('\n')
     query_IO_time = [float(number) for number in lines[1].split() if is_number(number)]
     if len(query_IO_time) == 2:
         query_IO = query_IO_time[1]
-        # query_IO_lst.append(query_IO)
-        # if query_IO_time[0] != 0:
-        #     query_time_s = query_IO_time[0] / 1000
-        #     query_time_IOPS_lst.append(query_IO / query_time_s)
     else:
         print("Unable to parse", lines[1])
         query_IO = None
     query_memory = lines[2].split()[-1]
     if (query_memory[-1].upper() == 'M') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1])
-        # query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-2:] == 'M,') and is_number(query_memory[:-2]):
         query_memory_M = float(query_memory[:-2])
-        # query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000
-        # query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'B') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) / 1000000
-        # query_memory_M_lst.append(query_memory_M)
     elif (query_memory[-1].upper() == 'G') and is_number(query_memory[:-1]):
         query_memory_M = float(query_memory[:-1]) * 1000
-        # query_memory_M_lst.append(query_memory_M)
     else:
         print("Unable to parse", lines[2])
         query_memory_M = None
     return query_memory_M, query_IO
 
-# def traverse_with_small_queries(node,graph_sparql_queries):
-#     subgraphTriples = pd.DataFrame()
-#     if args.training:
-#         query_name = "Extract_Benign_Subgraph_NoTime_"
-#     else:
-#         if args.traverse_with_time:
-#             query_name = "Extract_Suspicious_Subgraph_withTime_"
-#         else:
-#             query_name = "Extract_Suspicious_Subgraph_NoTime_"
-#     for direction in ["RR","RL","LR","LL",'R','L']:
-#         query_name_tmp = query_name + direction
-#         csv_results = traverse_with_a_query(node,graph_sparql_queries[query_name_tmp])
-#         subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
-#         subgraphTriples =  pd.concat([subgraphTriples,subgraphTriples_tmp], ignore_index=True, sort=False)
-#         del subgraphTriples_tmp
-#         subgraphTriples.drop_duplicates()
-#         if len(subgraphTriples) > max_edges:
-#             break
-#     return subgraphTriples
-
 
 def Traverse_rdf(params):
     traverse_time = time.time()
     global max_edges,max_nodes
-    # global graph_sparql_queries
     graph_sparql_queries = params[0]
     ioc = params[1]
     node = params[2]
@@ -858,7 +826,7 @@ def Traverse_rdf(params):
             csv_results = conn.select(query, content_type='text/csv', bindings={'IOC_node': node},
                                       limit=(max_edges + 10))
             explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
-            query_memory_M, query_IO = query_memory_M, query_IO = parse_profiled_query(explain_query)
+            query_memory_M, query_IO = parse_profiled_query(explain_query)
         except Exception as e:
             print("Error in Querying subgraph with seed", node, e)
             return None
