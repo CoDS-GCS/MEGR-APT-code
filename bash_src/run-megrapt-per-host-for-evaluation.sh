@@ -102,10 +102,12 @@ else
         done
     elif [[ "$host" == "optc" ]]
     then
-        preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${specific_QG} ${QG_folder} ${QG_IOCs}
-        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${specific_QG} ${QG_folder} ${QG_IOCs}
         preprocess_graph Malicious_Upgrade attack_SysClient0051 ${specific_QG} ${QG_folder} ${QG_IOCs}
         preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${specific_QG} ${QG_folder} ${QG_IOCs}
+
+
         
         for PG in {benign_SysClient0201,benign_SysClient0501,benign_SysClient0051,benign_SysClient0358}; do
             for Query in {Plain_PowerShell_Empire,Custom_PowerShell_Empire,Malicious_Upgrade}; do
