@@ -47,7 +47,6 @@ preprocess_graph () {
     specific_QG=$3
     QG_folder=$4
     QG_IOCs=$5
-    sleep 60
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
     
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
@@ -63,6 +62,7 @@ preprocess_graph () {
     else
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
+    sleep 60
 }
 
 read -p "Do you want to skip subgraph extraction (y/N)": skip
