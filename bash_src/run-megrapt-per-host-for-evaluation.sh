@@ -3,7 +3,7 @@ date=$(date +'%d_%m_%Y')
 output_prx=Temp
 read -p "Enter the experiment folder name:" output_prx
 echo "The output forlder is: ${output_prx}"
-
+read -p "Enter the stardog database name:" stardog_db
 echo "Available Hosts (cadets, theia, trace, optc)"
 read -p "Enter the host name:" host
 
@@ -47,6 +47,7 @@ preprocess_graph () {
     specific_QG=$3
     QG_folder=$4
     QG_IOCs=$5
+    stardog-admin db online ${stardog_db}
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
     
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
@@ -63,6 +64,7 @@ preprocess_graph () {
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
     sleep 60
+    stardog-admin db offline 1m ${stardog_db}
 }
 
 read -p "Do you want to skip subgraph extraction (y/N)": skip
@@ -80,7 +82,7 @@ else
     if [[ "$host" == "cadets" ]]
     then
         preprocess_graph BSD_1 attack_BSD_1 ${specific_QG} ${QG_folder} ${QG_IOCs}
-        preprocess_graph BSD_2 attack_BSD_2 ${specific_QG} ${QG_folder} ${QG_IOCs} 
+        preprocess_graph BSD_2 attack_BSD_2 ${specific_QG} ${QG_folder} ${QG_IOCs}
         preprocess_graph BSD_3 attack_BSD_3_4 ${specific_QG} ${QG_folder} ${QG_IOCs}
         preprocess_graph BSD_4 attack_BSD_3_4 ${specific_QG} ${QG_folder} ${QG_IOCs}
         for Query in {BSD_1,BSD_2,BSD_3,BSD_4}; do 
