@@ -7,6 +7,9 @@ read -p "Enter the stardog database name:" stardog_db
 echo "Available Hosts (cadets, theia, trace, optc)"
 read -p "Enter the host name:" host
 
+export PATH="$PATH:/opt/stardog/stardog-9.2.1/bin"
+export STARDOG_JAVA_ARGS="-Dstardog.default.cli.server=https://sd-d63d428a.stardog.cloud:5820"
+
 if [[ "$host" == "cadets" ]]
 then
   dataset=DARPA_CADETS
@@ -47,7 +50,7 @@ preprocess_graph () {
     specific_QG=$3
     QG_folder=$4
     QG_IOCs=$5
-    stardog-admin db online ${stardog_db}
+    stardog-admin db online ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
     
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
@@ -64,7 +67,7 @@ preprocess_graph () {
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
     sleep 60
-    stardog-admin db offline 1m ${stardog_db}
+    stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
 }
 
 read -p "Do you want to skip subgraph extraction (y/N)": skip
