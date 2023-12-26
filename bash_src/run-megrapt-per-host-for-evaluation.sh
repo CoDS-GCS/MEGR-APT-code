@@ -66,8 +66,8 @@ preprocess_graph () {
     else
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
-    sleep 60
     stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
+    sleep 60
 }
 
 read -p "Do you want to skip subgraph extraction (y/N)": skip
