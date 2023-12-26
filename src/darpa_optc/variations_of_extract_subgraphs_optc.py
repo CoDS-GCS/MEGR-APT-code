@@ -1051,6 +1051,7 @@ def main():
     print_memory_cpu_usage("Final memory")
     io_counters = process.io_counters()
     print("IOPS (over total time): ", (io_counters[0] + io_counters[1]) / (time.time() - start_running_time))
+    print("Disk I/O", io_counters[0]+io_counters[1])
     print("I/O counters", io_counters)
 
 
