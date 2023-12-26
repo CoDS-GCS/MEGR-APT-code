@@ -824,6 +824,7 @@ def Traverse_rdf(params):
     node = params[2]
     node = "\"" + node + "\""
     def traverse_with_a_query(node, query):
+        conn = stardog.Connection(database_name, **connection_details)
         try:
             csv_results = conn.select(query, content_type='text/csv', bindings={'IOC_node': node},
                                       limit=(max_edges + 10),timeout=300000)
@@ -832,8 +833,10 @@ def Traverse_rdf(params):
         except Exception as e:
             print("Error in Querying subgraph with seed", node, e)
             return None, None, None
+        conn.close()
         return csv_results, query_memory_M, query_IO
     if args.extract_with_one_query:
+        conn = stardog.Connection(database_name, **connection_details)
         if args.training:
             rand_limit = random.randint((max_edges / 10), max_edges)
             try:
@@ -860,6 +863,7 @@ def Traverse_rdf(params):
                     print("Error in Querying subgraph with seed", node, e)
                     return None, None, None, None
         subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
+        conn.close()
     else:
         subgraphTriples = pd.DataFrame()
         if args.training:
@@ -882,12 +886,12 @@ def Traverse_rdf(params):
             else:
                 return None, None, None, None
 
-        # subgraphTriples = traverse_with_small_queries(node, graph_sparql_queries)
     if len(subgraphTriples) > max_edges:
         print("Subgraph not within range", len(subgraphTriples),"edges")
         print("Traversed in ", time.time() - traverse_time, "seconds")
         return None, None, None, None
     print("Extracted a candidate subgraph with",len(subgraphTriples),"triples")
+    conn = stardog.Connection(database_name, **connection_details)
     # Convert subgraphTriples to networkx "subgraph"
     # Parse Triples
     try:
@@ -965,7 +969,6 @@ def Traverse_rdf(params):
 
 
 def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_suspicious_nodes):
-    conn = stardog.Connection(database_name, **connection_details)
     # global graph_sparql_queries
     global query_memory_M_lst, query_IO_lst
     start_time = time.time()
@@ -1014,7 +1017,9 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
                             subgraph.clear()
 
     # clear Suspicious Nodes Labels
+    conn = stardog.Connection(database_name, **connection_details)
     conn.update(graph_sparql_queries['Delete_Suspicious_Labels'])
+    conn.close()
     # Add ioc attributes
     revert_suspicious_nodes = dict((node, ioc) for ioc, list_nodes in suspicious_nodes.items() for node in list_nodes)
     for subgraph in suspGraphs:
@@ -1040,11 +1045,11 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
     construct_mem = getrusage(RUSAGE_SELF).ru_maxrss - start_mem
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
     print_memory_cpu_usage()
-    conn.close()
     return suspGraphs
 
 
 def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
+    conn = stardog.Connection(database_name, **connection_details)
     # global graph_sparql_queries
     start_time = time.time()
     benignSubGraphs = []
@@ -1105,6 +1110,7 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
     print_memory_cpu_usage()
     benign_nodes = None
+    conn.close()
     return benignSubGraphs
 
 
@@ -1281,7 +1287,6 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
     print("\n Extraction Memory usage: ", extraction_mem / 1024, "MB (based on resource - ru_maxrss)")
     print_memory_cpu_usage("Extraction")
-    # conn.close()
     return
 
     
