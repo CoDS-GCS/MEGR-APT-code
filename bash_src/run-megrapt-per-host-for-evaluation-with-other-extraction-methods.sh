@@ -50,7 +50,8 @@ preprocess_graph () {
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
       if [[ "$method" == "poirot" ]]
       then
-        echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
+        Influence_score=3
+        echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}, with Influence score ${Influence_score}"
         echo "Store output in ${output_prx} at ${date}"
         python -u src/${dataset_folder}/variations_of_extract_subgraphs_${host}.py --IFS-extract --influence-score ${Influence_score} --QG-all --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/extract_withPoirotAlgorithm_${QG}_in_${pg_name}_${date}.txt
       elif [[ "$method" == "deephunter" ]]
