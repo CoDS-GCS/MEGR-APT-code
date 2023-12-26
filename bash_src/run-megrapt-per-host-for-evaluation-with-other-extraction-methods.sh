@@ -77,10 +77,10 @@ else
     Threshold=0.4
     echo "Available extraction methods (poirot, deephunter)"
     read -p "Enter the extraction methods:" method
-    if [[ "$method" == "poirot" ]]
-    then
-      read -p "Enter the Influence Score: " Influence_score
-    fi
+#    if [[ "$method" == "poirot" ]]
+#    then
+#      read -p "Enter the Influence Score: " Influence_score
+#    fi
     if [[ "$host" == "cadets" ]]
     then
         preprocess_graph BSD_1 attack_BSD_1 ${QG_IOCs} ${Influence_score}
