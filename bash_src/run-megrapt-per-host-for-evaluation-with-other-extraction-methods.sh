@@ -45,11 +45,11 @@ preprocess_graph () {
     QG=$1
     pg_name=$2
     QG_IOCs=$3
+    Influence_score=$4
     sleep 3
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
       if [[ "$method" == "poirot" ]]
       then
-        read -p "Enter the Influence Score: " Influence_score
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
         echo "Store output in ${output_prx} at ${date}"
         python -u src/${dataset_folder}/variations_of_extract_subgraphs_${host}.py --IFS-extract --influence-score ${Influence_score} --QG-all --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/extract_withPoirotAlgorithm_${QG}_in_${pg_name}_${date}.txt
@@ -76,39 +76,43 @@ else
     Threshold=0.4
     echo "Available extraction methods (poirot, deephunter)"
     read -p "Enter the extraction methods:" method
+    if [[ "$method" == "poirot" ]]
+    then
+      read -p "Enter the Influence Score: " Influence_score
+    fi
     if [[ "$host" == "cadets" ]]
     then
-        preprocess_graph BSD_1 attack_BSD_1 ${QG_IOCs}
-        preprocess_graph BSD_2 attack_BSD_2 ${QG_IOCs}
-        preprocess_graph BSD_3 attack_BSD_3_4 ${QG_IOCs}
-        preprocess_graph BSD_4 attack_BSD_3_4 ${QG_IOCs}
+        preprocess_graph BSD_1 attack_BSD_1 ${QG_IOCs} ${Influence_score}
+        preprocess_graph BSD_2 attack_BSD_2 ${QG_IOCs} ${Influence_score}
+        preprocess_graph BSD_3 attack_BSD_3_4 ${QG_IOCs} ${Influence_score}
+        preprocess_graph BSD_4 attack_BSD_3_4 ${QG_IOCs} ${Influence_score}
         for Query in {BSD_1,BSD_2,BSD_3,BSD_4}; do 
-        preprocess_graph ${Query} benign_BSD ${QG_IOCs}
+        preprocess_graph ${Query} benign_BSD ${QG_IOCs} ${Influence_score}
         done
     elif [[ "$host" == "theia" ]]
     then
-        preprocess_graph Linux_1 attack_linux_1_2 ${QG_IOCs}
-        preprocess_graph Linux_2 attack_linux_1_2 ${QG_IOCs}
+        preprocess_graph Linux_1 attack_linux_1_2 ${QG_IOCs} ${Influence_score}
+        preprocess_graph Linux_2 attack_linux_1_2 ${QG_IOCs} ${Influence_score}
         for Query in {Linux_1,Linux_2}; do 
-            preprocess_graph ${Query} benign_theia ${QG_IOCs}
+            preprocess_graph ${Query} benign_theia ${QG_IOCs} ${Influence_score}
         done
     elif [[ "$host" == "trace" ]]
     then
-        preprocess_graph Linux_3 attack_linux_3 ${QG_IOCs}
-        preprocess_graph Linux_4 attack_linux_4 ${QG_IOCs}
+        preprocess_graph Linux_3 attack_linux_3 ${QG_IOCs} ${Influence_score}
+        preprocess_graph Linux_4 attack_linux_4 ${QG_IOCs} ${Influence_score}
         for Query in {Linux_3,Linux_4}; do 
-            preprocess_graph ${Query} benign_trace ${QG_IOCs}
+            preprocess_graph ${Query} benign_trace ${QG_IOCs} ${Influence_score}
         done
     elif [[ "$host" == "optc" ]]
     then
-        preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${QG_IOCs}
-        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${QG_IOCs}
-        preprocess_graph Malicious_Upgrade attack_SysClient0051 ${QG_IOCs}
-        preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${QG_IOCs}
+        preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${QG_IOCs} ${Influence_score}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${QG_IOCs} ${Influence_score}
+        preprocess_graph Malicious_Upgrade attack_SysClient0051 ${QG_IOCs} ${Influence_score}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${QG_IOCs} ${Influence_score}
         
         for PG in {benign_SysClient0201,benign_SysClient0501,benign_SysClient0051,benign_SysClient0358}; do
             for Query in {Plain_PowerShell_Empire,Custom_PowerShell_Empire,Malicious_Upgrade}; do
-                preprocess_graph ${Query} ${PG} ${QG_IOCs}
+                preprocess_graph ${Query} ${PG} ${QG_IOCs} ${Influence_score}
             done
         done
     else
