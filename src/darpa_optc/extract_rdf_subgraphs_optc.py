@@ -1339,9 +1339,10 @@ def main():
           (io_counters[0] + io_counters[1] + sum(query_IO_lst)) / (time.time() - start_running_time))
     print("Total extraction query IO",sum(query_IO_lst))
     print("Total Disk I/O", io_counters[0] + io_counters[1] + sum(query_IO_lst))
-    print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
-    print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst), "M")
-    print("Min occupied memory by subgraph extraction queries:", min(query_memory_M_lst), "M")
+    if len(query_memory_M_lst)>0:
+        print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
+        print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst), "M")
+        print("Min occupied memory by subgraph extraction queries:", min(query_memory_M_lst), "M")
     print("**************************************\nLogs:\nquery_memory_M_lst:",query_memory_M_lst)
 
     if args.parallel:
