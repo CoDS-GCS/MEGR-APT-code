@@ -10,6 +10,11 @@ read -p "Enter the host name:" host
 export PATH="$PATH:/opt/stardog/stardog-9.2.1/bin"
 export STARDOG_JAVA_ARGS="-Dstardog.default.cli.server=https://sd-d63d428a.stardog.cloud:5820"
 
+Max_Nodes_Mult=1000
+Max_Edges_Mult=1000
+#Max_Nodes_Mult=10
+#Max_Edges_Mult=25
+
 if [[ "$host" == "cadets" ]]
 then
   dataset=DARPA_CADETS
@@ -59,9 +64,9 @@ preprocess_graph () {
         if [[ "$specific_QG" == "y" ]]
         then
           echo "Query Graph Folder ${QG_folder}, IOCs ${QG_IOCs}"
-          python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --query-graphs-folder ./dataset/${dataset_name}/${QG_folder}/ --ioc-file ./dataset/${dataset_name}/${QG_IOCs}.json --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
+          python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --max-nodes-mult-qg ${Max_Nodes_Mult} --max-edges-mult-qg ${Max_Edges_Mult} --query-graphs-folder ./dataset/${dataset_name}/${QG_folder}/ --ioc-file ./dataset/${dataset_name}/${QG_IOCs}.json --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
         else
-          python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
+          python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --max-nodes-mult-qg ${Max_Nodes_Mult} --max-edges-mult-qg ${Max_Edges_Mult} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
         fi
     else
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "

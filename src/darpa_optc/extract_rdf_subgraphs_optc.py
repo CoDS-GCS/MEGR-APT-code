@@ -37,9 +37,9 @@ import ctypes
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
-parser.add_argument('--max-nodes-mult-qg', type=int, help='Maximum number of nodes for subgraphs', default=10)
+parser.add_argument('--max-nodes-mult-qg', type=int, help='Maximum number of nodes multiples QG size', default=10)
 parser.add_argument('--max-nodes-training', type=int, help='Maximum number of nodes for subgraphs', default=200)
-parser.add_argument('--max-edges-mult-qg', type=int, help='Maximum number of edges for subgraphs', default=25)
+parser.add_argument('--max-edges-mult-qg', type=int, help='Maximum number of edges multiples QG size', default=25)
 parser.add_argument('--max-edges-training', type=int, help='Maximum number of edges for subgraphs', default=1000)
 parser.add_argument('--min-iocs', type=int, help='Minimum number of Query Graph IOCs to accept subgraph', default=1)
 parser.add_argument('--output-prx', type=str, help='output file prefix ', default=None)
