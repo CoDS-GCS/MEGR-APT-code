@@ -156,7 +156,7 @@ read -p "Enter the experiment folder name:" output_prx_root
 
 for Max_Nodes_Mult in {5,10,15,20};do
   for Max_Edges_Mult in {20,25,30,35};do
-    output_prx=${output_prx_root}_${Max_Nodes_Mult}_"Nodes"_${Max_Edges_Mult}_"Edges"
+    output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
     echo "The output forlder is: ${output_prx}"
     run_megrapt ${Max_Nodes_Mult} ${Max_Edges_Mult} ${output_prx}
     sleep 300
