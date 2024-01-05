@@ -153,13 +153,27 @@ run_megrapt () {
 
 
 read -p "Enter the experiment folder name:" output_prx_root
+Max_Edges_Mult=25
+for Max_Nodes_Mult in {5,15,20};do
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo "The output forlder is: ${output_prx}"
+#  run_megrapt ${Max_Nodes_Mult} ${Max_Edges_Mult} ${output_prx}
+#  sleep 300
+done
+Max_Nodes_Mult=10
+for Max_Edges_Mult in {15,20,30};do
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo "The output forlder is: ${output_prx}"
+#  run_megrapt ${Max_Nodes_Mult} ${Max_Edges_Mult} ${output_prx}
+#  sleep 300
+done
 
-for Max_Nodes_Mult in {5,10,15,20};do
-  for Max_Edges_Mult in {20,25,30,35};do
+for Max_Nodes_Mult in {5,15,20};do
+  for Max_Edges_Mult in {15,20,30};do
     output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
     echo "The output forlder is: ${output_prx}"
-    run_megrapt ${Max_Nodes_Mult} ${Max_Edges_Mult} ${output_prx}
-    sleep 300
+#    run_megrapt ${Max_Nodes_Mult} ${Max_Edges_Mult} ${output_prx}
+#    sleep 300
   done
 done
 
