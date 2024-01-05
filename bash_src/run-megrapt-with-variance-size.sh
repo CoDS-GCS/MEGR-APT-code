@@ -54,6 +54,7 @@ preprocess_graph () {
     Max_Nodes_Mult=$5
     Max_Edges_Mult=$6
     output_prx=$7
+    echo ${output_prx}
     stardog-admin db online ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
 
@@ -68,14 +69,6 @@ preprocess_graph () {
     sleep 60
 }
 
-#read -p "Do you want to skip subgraph extraction (y/N)": skip
-#if [[ "$skip" == "y" ]]
-#then
-#    read -p "Enter the Threshold": Threshold
-#else
-#
-#fi
-
 
 predict_model () {
     layer=$1
@@ -87,6 +80,7 @@ predict_model () {
     ep=$7
     Threshold=$8
     output_prx=$9
+    echo ${output_prx}
     mkdir -p logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/
     echo "Predicting PG ${pg_name} with model parameters ${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}"
     python -u ./src/main.py --dataset ${dataset} --dataset-path ./dataset/${dataset_name}/experiments/${output_prx}/ --gnn-operator rgcn --embedding-layers ${layer} --learning-rate ${LR} --dropout ${DR} --epochs ${ep} --filters-1 ${vector1} --filters-2 ${vector2} --filters-3 ${vector3} --tensor-neurons ${vector3} --predict --predict-folder raw/torch_prediction/ --log-similarity --threshold ${Threshold} --load ./model/megrapt/${dataset_name}/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}.pt > logs/${dataset_name}/${output_prx}/Evaluate_Per_Host/${dataset_name}_${layer}rgcn_Lr${LR}_Dr${DR}_${vector1}-${vector2}-${vector3}_${ep}_TH${Threshold}_${output_prx}_${date}.txt
@@ -139,6 +133,7 @@ run_megrapt () {
 
   # Default Parameters
   predict_model 2 0.001 64 64 32 0 1000 ${Threshold} ${output_prx}
+
   if [[ "$host" == "cadets" ]]
   then
     predict_model 2 0.001 128 92 64 0 1000 ${Threshold} ${output_prx}
@@ -161,7 +156,7 @@ read -p "Enter the experiment folder name:" output_prx_root
 
 for Max_Nodes_Mult in {5,10,15,20};do
   for Max_Edges_Mult in {20,25,30,35};do
-    output_prx=${output_prx_root}_${Max_Nodes_Mult}_"Nodes"_${Max_Edges_Mult}
+    output_prx=${output_prx_root}_${Max_Nodes_Mult}_"Nodes"_${Max_Edges_Mult}_"Edges"
     echo "The output forlder is: ${output_prx}"
     run_megrapt ${Max_Nodes_Mult} ${Max_Edges_Mult} ${output_prx}
     sleep 300
