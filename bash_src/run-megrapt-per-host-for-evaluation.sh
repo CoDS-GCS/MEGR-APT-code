@@ -10,10 +10,9 @@ read -p "Enter the host name:" host
 export PATH="$PATH:/opt/stardog/stardog-9.2.1/bin"
 export STARDOG_JAVA_ARGS="-Dstardog.default.cli.server=https://sd-d63d428a.stardog.cloud:5820"
 
-Max_Nodes_Mult=1000
-Max_Edges_Mult=1000
-#Max_Nodes_Mult=10
-#Max_Edges_Mult=25
+
+Max_Nodes_Mult=10
+Max_Edges_Mult=25
 
 if [[ "$host" == "cadets" ]]
 then
@@ -117,9 +116,10 @@ else
                 preprocess_graph ${Query} ${PG} ${specific_QG} ${QG_folder} ${QG_IOCs}
             done
         done
-#        preprocess_graph Malicious_Upgrade attack_SysClient0051 ${specific_QG} ${QG_folder} ${QG_IOCs}
-#        preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${specific_QG} ${QG_folder} ${QG_IOCs}
-#        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Malicious_Upgrade attack_SysClient0051 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${specific_QG} ${QG_folder} ${QG_IOCs}
+        sleep 300
         preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${specific_QG} ${QG_folder} ${QG_IOCs}
     else
         echo "Undefined host."
@@ -158,3 +158,4 @@ then
 else
   echo "Undefined host."
 fi
+
