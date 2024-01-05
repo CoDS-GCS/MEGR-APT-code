@@ -137,6 +137,8 @@ run_megrapt () {
       echo "Undefined host."
   fi
 
+  # Default Parameters
+  predict_model 2 0.001 64 64 32 0 1000 ${Threshold} ${output_prx}
   if [[ "$host" == "cadets" ]]
   then
     predict_model 2 0.001 128 92 64 0 1000 ${Threshold} ${output_prx}
