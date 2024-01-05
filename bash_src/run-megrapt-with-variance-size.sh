@@ -9,9 +9,6 @@ export PATH="$PATH:/opt/stardog/stardog-9.2.1/bin"
 export STARDOG_JAVA_ARGS="-Dstardog.default.cli.server=https://sd-d63d428a.stardog.cloud:5820"
 
 
-#Max_Nodes_Mult=10
-#Max_Edges_Mult=25
-
 if [[ "$host" == "cadets" ]]
 then
   dataset=DARPA_CADETS
@@ -86,6 +83,7 @@ predict_model () {
 }
 
 run_megrapt () {
+  start_time=`date +%s`
   output_prx=$1
   Max_Nodes_Mult=$2
   Max_Edges_Mult=$3
@@ -146,6 +144,9 @@ run_megrapt () {
   else
     echo "Undefined host."
   fi
+  end_time=`date +%s`
+  runtime=$(((end_time-start_time)-(60*16)-300))
+  echo "Total Time is ${runtime} seconds"
 }
 
 
@@ -173,4 +174,5 @@ for Max_Nodes_Mult in {5,15,20};do
     sleep 300
   done
 done
+
 
