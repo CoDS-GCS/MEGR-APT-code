@@ -7,7 +7,7 @@ read -p "Enter the host name:" host
 
 export PATH="$PATH:/opt/stardog/stardog-9.2.1/bin"
 export STARDOG_JAVA_ARGS="-Dstardog.default.cli.server=https://sd-d63d428a.stardog.cloud:5820"
-
+read -p "Enter the experiment folder name:" output_prx_root
 
 if [[ "$host" == "cadets" ]]
 then
@@ -88,45 +88,47 @@ run_megrapt () {
   Max_Nodes_Mult=$2
   Max_Edges_Mult=$3
   echo ${output_prx}
+
+#  if [[ "$host" == "cadets" ]]
+#  then
+#      preprocess_graph BSD_1 attack_BSD_1 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      preprocess_graph BSD_2 attack_BSD_2 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      preprocess_graph BSD_3 attack_BSD_3_4 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      preprocess_graph BSD_4 attack_BSD_3_4 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      for Query in {BSD_1,BSD_2,BSD_3,BSD_4}; do
+#      preprocess_graph ${Query} benign_BSD ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      done
+#  elif [[ "$host" == "theia" ]]
+#  then
+#      preprocess_graph Linux_1 attack_linux_1_2 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      preprocess_graph Linux_2 attack_linux_1_2 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      for Query in {Linux_1,Linux_2}; do
+#          preprocess_graph ${Query} benign_theia ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      done
+#  elif [[ "$host" == "trace" ]]
+#  then
+#      preprocess_graph Linux_3 attack_linux_3 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      preprocess_graph Linux_4 attack_linux_4 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      for Query in {Linux_3,Linux_4}; do
+#          preprocess_graph ${Query} benign_trace ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      done
+#  elif [[ "$host" == "optc" ]]
+#  then
+#      for PG in {benign_SysClient0201,benign_SysClient0501,benign_SysClient0051,benign_SysClient0358}; do
+#          for Query in {Plain_PowerShell_Empire,Custom_PowerShell_Empire,Malicious_Upgrade}; do
+#              preprocess_graph ${Query} ${PG} ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#          done
+#      done
+#      preprocess_graph Malicious_Upgrade attack_SysClient0051 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      sleep 300
+#      preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#      sleep 300
+#      preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#  else
+#      echo "Undefined host."
+#  fi
   Threshold=0.4
-  if [[ "$host" == "cadets" ]]
-  then
-      preprocess_graph BSD_1 attack_BSD_1 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      preprocess_graph BSD_2 attack_BSD_2 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      preprocess_graph BSD_3 attack_BSD_3_4 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      preprocess_graph BSD_4 attack_BSD_3_4 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      for Query in {BSD_1,BSD_2,BSD_3,BSD_4}; do
-      preprocess_graph ${Query} benign_BSD ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      done
-  elif [[ "$host" == "theia" ]]
-  then
-      preprocess_graph Linux_1 attack_linux_1_2 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      preprocess_graph Linux_2 attack_linux_1_2 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      for Query in {Linux_1,Linux_2}; do
-          preprocess_graph ${Query} benign_theia ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      done
-  elif [[ "$host" == "trace" ]]
-  then
-      preprocess_graph Linux_3 attack_linux_3 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      preprocess_graph Linux_4 attack_linux_4 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      for Query in {Linux_3,Linux_4}; do
-          preprocess_graph ${Query} benign_trace ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      done
-  elif [[ "$host" == "optc" ]]
-  then
-      for PG in {benign_SysClient0201,benign_SysClient0501,benign_SysClient0051,benign_SysClient0358}; do
-          for Query in {Plain_PowerShell_Empire,Custom_PowerShell_Empire,Malicious_Upgrade}; do
-              preprocess_graph ${Query} ${PG} ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-          done
-      done
-      preprocess_graph Malicious_Upgrade attack_SysClient0051 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-      sleep 300
-      preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-  else
-      echo "Undefined host."
-  fi
   # Default Parameters
   predict_model 2 0.001 64 64 32 0 1000 ${Threshold} ${output_prx}
   if [[ "$host" == "cadets" ]]
@@ -149,21 +151,41 @@ run_megrapt () {
   echo "Total Time is ${runtime} seconds" > logs/${dataset_name}/${output_prx}/total_running_time_with_bash.txt
 }
 
+handle () {
+  QG=$1
+  pg_name=$2
+  Max_Nodes_Mult=$3
+  Max_Edges_Mult=$4
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo output_prx
+  preprocess_graph ${QG} ${pg_name} ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+}
 
-read -p "Enter the experiment folder name:" output_prx_root
+
+handle Custom_PowerShell_Empire benign_SysClient0051 10 30
+handle Malicious_Upgrade attack_SysClient0051 20 25
+handle Custom_PowerShell_Empire attack_SysClient0501
+sleep 300
+handle Plain_PowerShell_Empire attack_SysClient0201 20 20
+sleep 300
+handle Plain_PowerShell_Empire attack_SysClient0201 15 25
+sleep 300
+handle Plain_PowerShell_Empire attack_SysClient0201 10 20
+
+
 Max_Edges_Mult=25
 for Max_Nodes_Mult in {5,15,20};do
   output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
   echo "The output forlder is: ${output_prx}"
   run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-  sleep 300
+#  sleep 300
 done
 Max_Nodes_Mult=10
 for Max_Edges_Mult in {15,20,30};do
   output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
   echo "The output forlder is: ${output_prx}"
   run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-  sleep 300
+#  sleep 300
 done
 
 for Max_Nodes_Mult in {5,15,20};do
@@ -171,7 +193,7 @@ for Max_Nodes_Mult in {5,15,20};do
     output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
     echo "The output forlder is: ${output_prx}"
     run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-    sleep 300
+#    sleep 300
   done
 done
 
