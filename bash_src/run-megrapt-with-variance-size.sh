@@ -164,7 +164,7 @@ handle () {
 
 handle Custom_PowerShell_Empire benign_SysClient0051 10 30
 handle Malicious_Upgrade attack_SysClient0051 20 25
-handle Custom_PowerShell_Empire attack_SysClient0501
+handle Custom_PowerShell_Empire attack_SysClient0501 20 30
 sleep 300
 handle Plain_PowerShell_Empire attack_SysClient0201 20 20
 sleep 300
