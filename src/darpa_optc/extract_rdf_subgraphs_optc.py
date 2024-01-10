@@ -1050,6 +1050,7 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
 
 def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
     conn = stardog.Connection(database_name, **connection_details)
+    global query_memory_M_lst, query_IO_lst
     # global graph_sparql_queries
     start_time = time.time()
     benignSubGraphs = []
