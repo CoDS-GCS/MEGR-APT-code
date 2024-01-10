@@ -182,12 +182,15 @@ sleep 300
 handle Plain_PowerShell_Empire attack_SysClient0201 5 35
 sleep 300
 
+handle Custom_PowerShell_Empire benign_SysClient0501 10 35
+handle Plain_PowerShell_Empire benign_SysClient0201 10 35
+handle Custom_PowerShell_Empire benign_SysClient0201 10 35
+handle Malicious_Upgrade benign_SysClient0201 10 35
+sleep 300
+
 handle Custom_PowerShell_Empire attack_SysClient0501 15 35
 sleep 300
 handle Plain_PowerShell_Empire attack_SysClient0201 15 35
-sleep 300
-handle Custom_PowerShell_Empire benign_SysClient0501 10 30
-handle Custom_PowerShell_Empire benign_SysClient0201 10 30
 sleep 300
 
 #Max_Edges_Mult=10
