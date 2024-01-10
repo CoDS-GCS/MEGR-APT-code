@@ -164,70 +164,64 @@ handle () {
   predict_model 2 0.001 64 64 32 0 1000 ${Threshold} ${output_prx}
   predict_model 1 0.0001 128 92 64 0 1000 ${Threshold} ${output_prx}
 }
+
+# ----------------------------------- Complete OpTC --------------------------------------
+#handle Custom_PowerShell_Empire attack_SysClient0501 25 30
+#sleep 300
+#handle Plain_PowerShell_Empire attack_SysClient0201 25 20
+#sleep 300
+#handle Plain_PowerShell_Empire attack_SysClient0201 25 25
+#sleep 300
+#handle Plain_PowerShell_Empire attack_SysClient0201 25 30
+#sleep 300
+#
+#handle Custom_PowerShell_Empire attack_SysClient0501 5 35
+#sleep 300
+#handle Plain_PowerShell_Empire attack_SysClient0201 5 35
+#sleep 300
+#
+#handle Custom_PowerShell_Empire benign_SysClient0501 10 35
+#handle Plain_PowerShell_Empire benign_SysClient0201 10 35
+#handle Custom_PowerShell_Empire benign_SysClient0201 10 35
+#handle Malicious_Upgrade benign_SysClient0201 10 35
+#sleep 300
+#
+#handle Custom_PowerShell_Empire attack_SysClient0501 15 35
+#sleep 300
+#handle Plain_PowerShell_Empire attack_SysClient0201 15 35
+#sleep 300
 #
 #
-
-
-handle Custom_PowerShell_Empire attack_SysClient0501 25 30
-sleep 300
-handle Plain_PowerShell_Empire attack_SysClient0201 25 20
-sleep 300
-handle Plain_PowerShell_Empire attack_SysClient0201 25 25
-sleep 300
-handle Plain_PowerShell_Empire attack_SysClient0201 25 30
-sleep 300
-
-handle Custom_PowerShell_Empire attack_SysClient0501 5 35
-sleep 300
-handle Plain_PowerShell_Empire attack_SysClient0201 5 35
-sleep 300
-
-handle Custom_PowerShell_Empire benign_SysClient0501 10 35
-handle Plain_PowerShell_Empire benign_SysClient0201 10 35
-handle Custom_PowerShell_Empire benign_SysClient0201 10 35
-handle Malicious_Upgrade benign_SysClient0201 10 35
-sleep 300
-
-handle Custom_PowerShell_Empire attack_SysClient0501 15 35
-sleep 300
-handle Plain_PowerShell_Empire attack_SysClient0201 15 35
-sleep 300
-
-#Max_Edges_Mult=10
-#for Max_Nodes_Mult in {5,10,15,20};do
-#  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-#  echo "The output forlder is: ${output_prx}"
-#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-#  sleep 300
-#done
-#Max_Nodes_Mult=25
-#for Max_Edges_Mult in {15,20,25,30};do
-#  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-#  echo "The output forlder is: ${output_prx}"
-#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-#  sleep 300
-#done
-
-output_prx="${output_prx_root}_20_Nodes_35_Edges"
-run_megrapt ${output_prx} 20 35
-sleep 300
-
-for Max_Edges_Mult in {40};do
-  for Max_Nodes_Mult in {5,10,15,20};do
-    output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-    echo "The output forlder is: ${output_prx}"
-    run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-    sleep 300
-  done
-done
+#output_prx="${output_prx_root}_20_Nodes_35_Edges"
+#run_megrapt ${output_prx} 20 35
+#sleep 300
 #
-#for Max_Nodes_Mult in {5,15,20};do
-#  for Max_Edges_Mult in {15,20,30};do
+#for Max_Edges_Mult in {40};do
+#  for Max_Nodes_Mult in {5,10,15,20};do
 #    output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
 #    echo "The output forlder is: ${output_prx}"
 #    run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
 #    sleep 300
 #  done
 #done
+# ---------------------------------------------------------------
+
+# The default
+Max_Edges_Mult=10
+for Max_Nodes_Mult in {5,10,15,20};do
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo "The output forlder is: ${output_prx}"
+  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+  sleep 300
+done
+for Max_Nodes_Mult in {5,10,15,20};do
+  for Max_Edges_Mult in {15,20,25,30};do
+    output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+    echo "The output forlder is: ${output_prx}"
+    run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+    sleep 300
+  done
+done
+
 
 
