@@ -4,6 +4,7 @@ output_prx=Temp
 read -p "Enter the stardog database name:" stardog_db
 echo "Available Hosts (cadets, theia, trace, optc)"
 read -p "Enter the host name:" host
+Threshold=0.4
 
 export PATH="$PATH:/opt/stardog/stardog-9.2.1/bin"
 export STARDOG_JAVA_ARGS="-Dstardog.default.cli.server=https://sd-d63d428a.stardog.cloud:5820"
@@ -151,44 +152,64 @@ run_megrapt () {
   echo "Total Time is ${runtime} seconds" >> logs/${dataset_name}/${output_prx}/total_running_time_with_bash.txt
 }
 
-#handle () {
-#  QG=$1
-#  pg_name=$2
-#  Max_Nodes_Mult=$3
-#  Max_Edges_Mult=$4
+handle () {
+  QG=$1
+  pg_name=$2
+  Max_Nodes_Mult=$3
+  Max_Edges_Mult=$4
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo output_prx
+  preprocess_graph ${QG} ${pg_name} ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+  # Default Parameters
+  predict_model 2 0.001 64 64 32 0 1000 ${Threshold} ${output_prx}
+  predict_model 1 0.0001 128 92 64 0 1000 ${Threshold} ${output_prx}
+}
+#
+#
+
+
+handle Custom_PowerShell_Empire attack_SysClient0501 25 30
+sleep 300
+handle Plain_PowerShell_Empire attack_SysClient0201 25 20
+sleep 300
+handle Plain_PowerShell_Empire attack_SysClient0201 25 25
+sleep 300
+handle Plain_PowerShell_Empire attack_SysClient0201 25 30
+sleep 300
+
+handle Custom_PowerShell_Empire attack_SysClient0501 5 35
+sleep 300
+handle Plain_PowerShell_Empire attack_SysClient0201 5 35
+sleep 300
+
+handle Custom_PowerShell_Empire attack_SysClient0501 15 35
+sleep 300
+handle Plain_PowerShell_Empire attack_SysClient0201 15 35
+sleep 300
+handle Custom_PowerShell_Empire benign_SysClient0501 10 30
+handle Custom_PowerShell_Empire benign_SysClient0201 10 30
+sleep 300
+
+#Max_Edges_Mult=10
+#for Max_Nodes_Mult in {5,10,15,20};do
 #  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-#  echo output_prx
-#  preprocess_graph ${QG} ${pg_name} ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-#}
-#
-#
-#handle Custom_PowerShell_Empire benign_SysClient0051 10 30
-#handle Malicious_Upgrade attack_SysClient0051 20 25
-#handle Custom_PowerShell_Empire attack_SysClient0501 20 30
-#sleep 300
-#handle Plain_PowerShell_Empire attack_SysClient0201 20 20
-#sleep 300
-#handle Plain_PowerShell_Empire attack_SysClient0201 15 25
-#sleep 300
-#handle Plain_PowerShell_Empire attack_SysClient0201 10 20
+#  echo "The output forlder is: ${output_prx}"
+#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#  sleep 300
+#done
+#Max_Nodes_Mult=25
+#for Max_Edges_Mult in {15,20,25,30};do
+#  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+#  echo "The output forlder is: ${output_prx}"
+#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#  sleep 300
+#done
 
+output_prx="${output_prx_root}_20_Nodes_35_Edges"
+run_megrapt ${output_prx} 20 35
+sleep 300
 
-Max_Edges_Mult=10
-for Max_Nodes_Mult in {5,10,15,20};do
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo "The output forlder is: ${output_prx}"
-  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-  sleep 300
-done
-Max_Nodes_Mult=25
-for Max_Edges_Mult in {15,20,25,30};do
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo "The output forlder is: ${output_prx}"
-  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-  sleep 300
-done
-
-for Max_Edges_Mult in {35,40};do
+for Max_Edges_Mult in {40};do
   for Max_Nodes_Mult in {5,10,15,20};do
     output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
     echo "The output forlder is: ${output_prx}"

@@ -31,6 +31,7 @@ from dataset_config import get_stardog_cred
 
 process = psutil.Process(os.getpid())
 import multiprocessing
+from resource import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
@@ -52,6 +53,16 @@ parser.add_argument("--pg-name",type=str,default=None,help="The nae of the teste
 parser.add_argument('--database-name', type=str, help='Stardog database name', default='tc3-cadets')
 args = parser.parse_args()
 
+def print_memory_cpu_usage(message=None):
+    print(message)
+    print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
+    print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
+    print('The CPU usage is (per process): ', psutil.Process(os.getpid()).cpu_percent(4))
+    load1, load5, load15 = psutil.getloadavg()
+    cpu_usage = (load15 / os.cpu_count()) * 100
+    print("The CPU usage is : ", cpu_usage)
+    print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
+          psutil.virtual_memory().percent)
 def read_json_graph(filename):
     with open(filename) as f:
         js_graph = json.load(f)
@@ -484,6 +495,7 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     conn.update(Label_Suspicious_Nodes)
     print("labelling Suspicious nodes in: --- %s seconds ---" % (time.time() - start_time))
     print("Memory usage : ", process.memory_info().rss / (1024 ** 2), "MB")
+    print_memory_cpu_usage("Labelling candidate nodes")
     if args.training:
         return
     return suspicious_nodes, all_suspicious_nodes
@@ -665,6 +677,7 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
     print("Extract suspicious subgraphs in --- %s seconds ---" % (time.time() - start_time))
     construct_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - start_mem
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
+    print_memory_cpu_usage()
     return suspGraphs
 
 
@@ -716,6 +729,7 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
           round(mean([supgraph.number_of_edges() for supgraph in benignSubGraphs])))
     print("--- %s seconds ---" % (time.time() - start_time))
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
+    print_memory_cpu_usage()
     benign_nodes = None
     return benignSubGraphs
 
@@ -840,6 +854,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     suspSubGraphs = extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes,
                                                                        all_suspicious_nodes)
@@ -848,6 +863,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     checkpoint(suspSubGraphs,
                ( "./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/predict/nx_suspicious_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
@@ -870,6 +886,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     print("Encoding prediction subgraphs")
     if args.parallel:
@@ -890,6 +907,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     print("\nprocessed", GRAPH_NAME, "with", query_graph_name," in: --- %s seconds ---" % (time.time() - one_graph_time))
     print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
     print("\n Extraction Memory usage: ", extraction_mem / 1024, "MB (based on resource - ru_maxrss)")
+    print_memory_cpu_usage("Extraction")
     return
 
 
