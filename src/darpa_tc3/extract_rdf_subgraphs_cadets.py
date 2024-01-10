@@ -1235,12 +1235,13 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print_memory_cpu_usage("Extraction")
         return
     print("Encoding prediction subgraphs")
-    if args.parallel:
-        cores = multiprocessing.cpu_count() - 2
-        suspSubGraphs_dask = db.from_sequence(suspSubGraphs, npartitions=cores)
-        prediction_graphs_dgl = suspSubGraphs_dask.map(lambda g: encode_for_RGCN(g)).compute()
-    else:
-        prediction_graphs_dgl = [encode_for_RGCN(g) for g in suspSubGraphs]
+    # if args.parallel:
+    #     cores = multiprocessing.cpu_count() - 2
+    #     suspSubGraphs_dask = db.from_sequence(suspSubGraphs, npartitions=cores)
+    #     prediction_graphs_dgl = suspSubGraphs_dask.map(lambda g: encode_for_RGCN(g)).compute()
+    # else:
+    #     prediction_graphs_dgl = [encode_for_RGCN(g) for g in suspSubGraphs]
+    prediction_graphs_dgl = [encode_for_RGCN(g) for g in suspSubGraphs]
     checkpoint(prediction_graphs_dgl,
                ("./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/predict/dgl_prediction_graphs_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
     suspSubGraphs, suspicious_nodes, all_suspicious_nodes = None, None, None
