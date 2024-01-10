@@ -500,6 +500,124 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
         return
     return suspicious_nodes, all_suspicious_nodes
 
+def isint(val):
+    try:
+        int(val)
+        result = True
+    except ValueError:
+        result = False
+    return bool(result)
+
+def isfloat(val):
+    try:
+        float(val)
+        result = True
+    except ValueError:
+        result = False
+    return bool(result) and not isint(val)
+def is_number(val):
+    return isint(val) or isfloat(val)
+def parse_profiled_query(explain_query):
+    lines = explain_query.split('\n')
+    query_IO_time = [float(number) for number in lines[1].split() if is_number(number)]
+    if len(query_IO_time) == 2:
+        query_IO = query_IO_time[1]
+    else:
+        print("Unable to parse", lines[1])
+        query_IO = None
+    query_memory = lines[2].split()[-1]
+    if (query_memory[-1].upper() == 'M') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1])
+    elif (query_memory[-2:] == 'M,') and is_number(query_memory[:-2]):
+        query_memory_M = float(query_memory[:-2])
+    elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1]) / 1000
+    elif (query_memory[-1].upper() == 'B') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1]) / 1000000
+    elif (query_memory[-1].upper() == 'G') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1]) * 1000
+    else:
+        print("Unable to parse", lines[2])
+        query_memory_M = None
+    return query_memory_M, query_IO
+
+def Traverse_rdf(params):
+    conn = stardog.Connection(database_name, **connection_details)
+    traverse_time = time.time()
+    global max_edges,max_nodes
+    graph_sparql_queries = params[0]
+    ioc = params[1]
+    node = params[2]
+    node = "\"" + node + "\""
+    def traverse_with_a_query(node, query):
+        conn = stardog.Connection(database_name, **connection_details)
+        try:
+            csv_results = conn.select(query, content_type='text/csv', bindings={'IOC_node': node},
+                                      limit=(max_edges + 10),timeout=300000)
+            explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
+            query_memory_M, query_IO = parse_profiled_query(explain_query)
+        except Exception as e:
+            print("Error in Querying subgraph with seed", node, e)
+            return None, None, None
+        conn.close()
+        return csv_results, query_memory_M, query_IO
+    if args.extract_with_one_query:
+        conn = stardog.Connection(database_name, **connection_details)
+        if args.training:
+            rand_limit = random.randint((max_edges / 10), max_edges)
+            try:
+                csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_NoTime'], content_type='text/csv',
+                                          bindings={'IOC_node': node}, limit=(rand_limit),timeout=300000)
+            except Exception as e:
+                print("Error in Querying subgraph with seed", node, e)
+                return None, None, None, None
+        else:
+            if args.traverse_with_time:
+                try:
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10),timeout=300000)
+                    explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),profile=True)
+                    query_memory_M, query_IO = parse_profiled_query(explain_query)
+                except Exception as e:
+                    print("Error in Querying subgraph with seed", node, e)
+                    return None, None, None, None
+            else:
+                try:
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10),timeout=300000)
+                    explain_query = conn.explain(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node), profile=True)
+                    query_memory_M, query_IO = parse_profiled_query(explain_query)
+                except Exception as e:
+                    print("Error in Querying subgraph with seed", node, e)
+                    return None, None, None, None
+        subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
+        conn.close()
+    else:
+        subgraphTriples = pd.DataFrame()
+        if args.training:
+            query_name = "Extract_Benign_Subgraph_NoTime_"
+        else:
+            if args.traverse_with_time:
+                query_name = "Extract_Suspicious_Subgraph_withTime_"
+            else:
+                query_name = "Extract_Suspicious_Subgraph_NoTime_"
+        for direction in ["RR", "RL", "LR", "LL", 'R', 'L']:
+            query_name_tmp = query_name + direction
+            csv_results, query_memory_M, query_IO = traverse_with_a_query(node, graph_sparql_queries[query_name_tmp])
+            if csv_results:
+                subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
+                subgraphTriples = pd.concat([subgraphTriples, subgraphTriples_tmp], ignore_index=True, sort=False)
+                del subgraphTriples_tmp
+                subgraphTriples.drop_duplicates()
+                if len(subgraphTriples) > max_edges:
+                    break
+            else:
+                return None, None, None, None
+
+    if len(subgraphTriples) > max_edges:
+        print("Subgraph not within range", len(subgraphTriples),"edges")
+        print("Traversed in ", time.time() - traverse_time, "seconds")
+        return None, None, None, None
+    print("Extracted a candidate subgraph with",len(subgraphTriples),"triples")
+    conn = stardog.Connection(database_name, **connection_details)
 
 # def Traverse_rdf(graph_sparql_queries,node,suspicious = True):
 def Traverse_rdf(params):
