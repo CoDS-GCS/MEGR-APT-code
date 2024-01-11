@@ -61,7 +61,7 @@ preprocess_graph () {
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
     stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
-    sleep 60
+    sleep 10
 }
 
 
@@ -119,8 +119,8 @@ run_megrapt () {
               preprocess_graph ${Query} ${PG} ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
           done
       done
-      preprocess_graph Malicious_Upgrade attack_SysClient0051 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
       preprocess_graph Custom_PowerShell_Empire attack_SysClient0358 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+      preprocess_graph Malicious_Upgrade attack_SysClient0051 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
       sleep 300
       preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
       sleep 300
