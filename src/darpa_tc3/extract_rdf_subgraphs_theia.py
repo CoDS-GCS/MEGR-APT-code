@@ -31,6 +31,7 @@ import sys
 current_dir = os.getcwd()
 sys.path.append(current_dir+"/src")
 from dataset_config import get_stardog_cred
+from resource import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--min-nodes', type=int, help='Minimum number of nodes for subgraphs', default=3)
@@ -49,8 +50,19 @@ parser.add_argument('--traverse-with-time', help='Consider timestamp while trave
 parser.add_argument("--test-a-qg",type=str,default=None,help="The name of the tested query graph.")
 parser.add_argument("--pg-name",type=str,default=None,help="The nae of the tested provenance graph.")
 parser.add_argument('--database-name', type=str, help='Stardog database name', default='tc3-theia')
+parser.add_argument('--extract-with-one-query', help='Extract with one complex query', action="store_true",default=False)
 args = parser.parse_args()
 
+def print_memory_cpu_usage(message=None):
+    print(message)
+    print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
+    print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
+    print('The CPU usage is (per process): ', psutil.Process(os.getpid()).cpu_percent(4))
+    load1, load5, load15 = psutil.getloadavg()
+    cpu_usage = (load15 / os.cpu_count()) * 100
+    print("The CPU usage is : ", cpu_usage)
+    print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
+          psutil.virtual_memory().percent)
 
 def read_json_graph(filename):
     with open(filename) as f:
@@ -316,6 +328,142 @@ sparql_queries = {'Query_Suspicious_IP': """
     }   
     LIMIT <MAX_EDGES>
 """,
+'Extract_Suspicious_Subgraph_withTime_R': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    # 1- forward
+    SELECT DISTINCT ?subject ?predicate ?object ?timestamp
+    WHERE {
+        << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
+        ?subject <GRAPH_NAME>:uuid ?IOC_node .
+        {?object rdf:type "process"} UNION {?object <GRAPH_NAME>:suspicious <Query> } .
+    }  LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_L': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #2- backward
+    SELECT DISTINCT ?subject ?predicate ?object ?timestamp
+    WHERE {
+        << ?subject ?predicate ?object >> <GRAPH_NAME>:timestamp ?timestamp .
+        ?object <GRAPH_NAME>:uuid ?IOC_node .
+        {?subject rdf:type "process"} UNION {?subject <GRAPH_NAME>:suspicious <Query>} .
+    } LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_RR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #3-a forward from all first neighbours  
+    SELECT DISTINCT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) ?timestamp
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        << ?first_object ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp . 
+        ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+        {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+        {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_RL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #3-b forward from all first neighbours  
+    SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)  ?timestamp
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        <<?first_subject ?next_predicate ?next_object >> <GRAPH_NAME>:timestamp ?timestamp . 
+        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+        {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_LR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #4-a Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) ?timestamp 
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        << ?next_subject ?next_predicate ?first_object >> <GRAPH_NAME>:timestamp ?timestamp .
+        ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+        {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_withTime_LL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #4-b Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) ?timestamp
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        << ?next_subject ?next_predicate ?first_subject >> <GRAPH_NAME>:timestamp ?timestamp .
+        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+        {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_R': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    # 1- forward
+    SELECT DISTINCT ?subject ?predicate ?object 
+    WHERE {
+        ?subject ?predicate ?object .
+        ?subject <GRAPH_NAME>:uuid ?IOC_node .
+        {?object rdf:type "process"} UNION {?object <GRAPH_NAME>:suspicious <Query> } .
+    }  LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_L': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #2- backward
+    SELECT DISTINCT ?subject ?predicate ?object 
+    WHERE {
+        ?subject ?predicate ?object .
+        ?object <GRAPH_NAME>:uuid ?IOC_node .
+        {?subject rdf:type "process"} UNION {?subject <GRAPH_NAME>:suspicious <Query>} .
+    } LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_RR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #3-a forward from all first neighbours  
+    SELECT DISTINCT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        ?first_object ?next_predicate ?next_object . 
+        ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+        {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+        {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_RL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #3-b forward from all first neighbours  
+    SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        ?first_subject ?next_predicate ?next_object . 
+        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+        {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?next_object rdf:type "process"} UNION {?next_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_LR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #4-a Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) 
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        ?next_subject ?next_predicate ?first_object .
+        ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+        {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?first_object rdf:type "process"} UNION {?first_object <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
+'Extract_Suspicious_Subgraph_NoTime_LL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
+    #4-b Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object)
+    WHERE {
+        ?first_subject ?first_predicate ?first_object .
+        ?next_subject ?next_predicate ?first_subject .
+        ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+        {?next_subject rdf:type "process"} UNION {?next_subject <GRAPH_NAME>:suspicious <Query>} .
+        {?first_subject rdf:type "process"} UNION {?first_subject <GRAPH_NAME>:suspicious <Query>} .
+    }   LIMIT <MAX_EDGES>
+""",
                   'Extract_Benign_Subgraph_NoTime': """
     PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
     SELECT  DISTINCT ?subject ?predicate ?object {
@@ -481,6 +629,104 @@ sparql_queries = {'Query_Suspicious_IP': """
     }   
     LIMIT <MAX_EDGES>
 """,
+'Extract_Benign_Subgraph_NoTime_R': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
+    # 1- forward
+    SELECT DISTINCT ?subject ?predicate ?object 
+    WHERE {
+        ?subject ?predicate ?object .
+        ?subject <GRAPH_NAME>:uuid ?IOC_node .
+        FILTER NOT EXISTS {?object <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?predicate), ".*/event/.*") .
+    }   LIMIT <MAX_EDGES> 
+ """,
+'Extract_Benign_Subgraph_NoTime_L': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
+    #2- backward
+    SELECT DISTINCT ?subject ?predicate ?object 
+    WHERE {
+        ?subject ?predicate ?object .
+        ?object <GRAPH_NAME>:uuid ?IOC_node .
+        FILTER NOT EXISTS {?subject <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?predicate), ".*/event/.*") .
+    } LIMIT <MAX_EDGES> 
+""",
+'Extract_Benign_Subgraph_NoTime_RR': """             
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
+    # 3-a forward from all first neighbours  
+    SELECT (?first_object as ?subject) (?next_predicate as ?predicate) (?next_object as ?object) 
+    WHERE {
+        ?first_object ?next_predicate ?next_object .
+        {
+            SELECT DISTINCT ?first_object 
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?first_subject <GRAPH_NAME>:uuid ?IOC_node .
+                FILTER NOT EXISTS {?first_object <GRAPH_NAME>:suspicious ?susp}.
+                FILTER regex(str(?first_predicate), ".*/event/.*") .
+            }
+        }
+        FILTER NOT EXISTS {?next_object <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?next_predicate), ".*/event/.*") .
+    }    LIMIT <MAX_EDGES>
+""",
+'Extract_Benign_Subgraph_NoTime_RL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
+    # 3-b forward from all first neighbours  
+    SELECT DISTINCT (?first_subject as ?subject) (?next_predicate as ?predicate) (?next_object as ?object)  
+    WHERE {
+        ?first_subject ?next_predicate ?next_object
+        { 
+            SELECT DISTINCT ?first_subject
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                FILTER NOT EXISTS {?first_subject <GRAPH_NAME>:suspicious ?susp}.
+                FILTER regex(str(?first_predicate), ".*/event/.*") .
+            }
+        }
+        FILTER NOT EXISTS {?next_object <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?next_predicate), ".*/event/.*") .
+    } LIMIT <MAX_EDGES>
+""",
+'Extract_Benign_Subgraph_NoTime_LR': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
+    #4-a Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_object as ?object) 
+    WHERE {
+        ?next_subject ?next_predicate ?first_object
+        {
+            SELECT DISTINCT ?first_object
+            WHERE{
+                ?first_subject ?first_predicate ?first_object .
+                ?first_subject <GRAPH_NAME>:uuid ?IOC_node . 
+                FILTER NOT EXISTS {?first_object <GRAPH_NAME>:suspicious ?susp}.
+                FILTER regex(str(?first_predicate), ".*/event/.*") .
+            }
+        }
+        FILTER NOT EXISTS {?next_subject <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?next_predicate), ".*/event/.*") .
+    }    LIMIT <MAX_EDGES> 
+""",
+'Extract_Benign_Subgraph_NoTime_LL': """
+    PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/> 
+    #4-b Backward from all first neighbours  
+    SELECT DISTINCT (?next_subject as ?subject) (?next_predicate as ?predicate) (?first_subject as ?object) 
+    WHERE {
+        ?next_subject ?next_predicate ?first_subject .
+        {
+            SELECT DISTINCT  ?first_subject  
+            WHERE {
+                ?first_subject ?first_predicate ?first_object .
+                ?first_object <GRAPH_NAME>:uuid ?IOC_node .
+                FILTER NOT EXISTS {?first_subject <GRAPH_NAME>:suspicious ?susp}.
+                FILTER regex(str(?first_predicate), ".*/event/.*") .
+            }
+        }
+        FILTER NOT EXISTS {?next_subject <GRAPH_NAME>:suspicious ?susp}.
+        FILTER regex(str(?next_predicate), ".*/event/.*") .
+    }   LIMIT <MAX_EDGES>  
+""",
 
                   'Process_attributes': """
 PREFIX <GRAPH_NAME>: <http://grapt.org/darpa_tc3/theia/<GRAPH_NAME>/>
@@ -520,6 +766,7 @@ WHERE {
 
 def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     start_time = time.time()
+    conn = stardog.Connection(database_name, **connection_details)
     with open(args.ioc_file) as f:
         query_graphs_IOCs = json.load(f)
     try:
@@ -555,48 +802,138 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     conn.update(Label_Suspicious_Nodes)
     print("labelling Suspicious nodes in: --- %s seconds ---" % (time.time() - start_time))
     print("Memory usage : ", process.memory_info().rss / (1024 ** 2), "MB")
+    print_memory_cpu_usage("Labelling candidate nodes")
+    conn.close()
     if args.training:
         return
     return suspicious_nodes, all_suspicious_nodes
 
+def isint(val):
+    try:
+        int(val)
+        result = True
+    except ValueError:
+        result = False
+    return bool(result)
+
+def isfloat(val):
+    try:
+        float(val)
+        result = True
+    except ValueError:
+        result = False
+    return bool(result) and not isint(val)
+def is_number(val):
+    return isint(val) or isfloat(val)
+def parse_profiled_query(explain_query):
+    lines = explain_query.split('\n')
+    query_IO_time = [float(number) for number in lines[1].split() if is_number(number)]
+    if len(query_IO_time) == 2:
+        query_IO = query_IO_time[1]
+    else:
+        print("Unable to parse", lines[1])
+        query_IO = None
+    query_memory = lines[2].split()[-1]
+    if (query_memory[-1].upper() == 'M') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1])
+    elif (query_memory[-2:] == 'M,') and is_number(query_memory[:-2]):
+        query_memory_M = float(query_memory[:-2])
+    elif (query_memory[-1].upper() == 'K') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1]) / 1000
+    elif (query_memory[-1].upper() == 'B') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1]) / 1000000
+    elif (query_memory[-1].upper() == 'G') and is_number(query_memory[:-1]):
+        query_memory_M = float(query_memory[:-1]) * 1000
+    else:
+        print("Unable to parse", lines[2])
+        query_memory_M = None
+    return query_memory_M, query_IO
 
 # def Traverse_rdf(graph_sparql_queries,node,suspicious = True):
 def Traverse_rdf(params):
+    conn = stardog.Connection(database_name, **connection_details)
     traverse_time = time.time()
     global max_edges,max_nodes
     graph_sparql_queries = params[0]
     ioc = params[1]
     node = params[2]
     node = "\"" + node + "\""
-    if args.training:
-        rand_limit = random.randint((max_edges / 10), max_edges)
+    def traverse_with_a_query(node, query):
+        conn = stardog.Connection(database_name, **connection_details)
         try:
-            if args.traverse_with_time:
-                csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_withTime'], content_type='text/csv',
-                                          bindings={'IOC_node': node}, limit=(rand_limit))
-            else:
-                csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_NoTime'], content_type='text/csv',
-                                          bindings={'IOC_node': node}, limit=(rand_limit))
+            csv_results = conn.select(query, content_type='text/csv', bindings={'IOC_node': node},
+                                      limit=(max_edges + 10),timeout=300000)
+            explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
+            query_memory_M, query_IO = parse_profiled_query(explain_query)
         except Exception as e:
             print("Error in Querying subgraph with seed", node, e)
-            return None, None
-        
+            return None, None, None
+        conn.close()
+        return csv_results, query_memory_M, query_IO
+    if args.extract_with_one_query:
+        conn = stardog.Connection(database_name, **connection_details)
+        if args.training:
+            rand_limit = random.randint((max_edges / 10), max_edges)
+            try:
+                if args.traverse_with_time:
+                    csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_withTime'], content_type='text/csv',
+                                              bindings={'IOC_node': node}, limit=(rand_limit))
+                else:
+                    csv_results = conn.select(graph_sparql_queries['Extract_Benign_Subgraph_NoTime'], content_type='text/csv',
+                                              bindings={'IOC_node': node}, limit=(rand_limit))
+            except Exception as e:
+                print("Error in Querying subgraph with seed", node, e)
+                return None, None, None, None
+        else:
+            try:
+                if args.traverse_with_time:
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
+                                              content_type='text/csv',
+                                              bindings={'IOC_node': node}, limit=(max_edges + 10))
+                    explain_query = conn.explain(
+                        graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),
+                        profile=True)
+                    query_memory_M, query_IO = parse_profiled_query(explain_query)
+                else:
+                    csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],
+                                              content_type='text/csv',
+                                              bindings={'IOC_node': node}, limit=(max_edges + 10))
+                    explain_query = conn.explain(
+                        graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node),
+                        profile=True)
+                    query_memory_M, query_IO = parse_profiled_query(explain_query)
+            except Exception as e:
+                print("Error in Querying subgraph with seed", node, e)
+                return None, None, None, None
+        subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
+        conn.close()
     else:
-        try:
+        subgraphTriples = pd.DataFrame()
+        if args.training:
+            query_name = "Extract_Benign_Subgraph_NoTime_"
+        else:
             if args.traverse_with_time:
-                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
-                                          content_type='text/csv',
-                                          bindings={'IOC_node': node}, limit=(max_edges + 10))
+                query_name = "Extract_Suspicious_Subgraph_withTime_"
             else:
-                csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'],content_type='text/csv',bindings={'IOC_node': node}, limit=(max_edges + 10))
-        except Exception as e:
-            print("Error in Querying subgraph with seed", node, e)
-            return None, None
-    subgraphTriples = pd.read_csv(io.BytesIO(csv_results))
+                query_name = "Extract_Suspicious_Subgraph_NoTime_"
+        for direction in ["RR", "RL", "LR", "LL", 'R', 'L']:
+            query_name_tmp = query_name + direction
+            csv_results, query_memory_M, query_IO = traverse_with_a_query(node, graph_sparql_queries[query_name_tmp])
+            if csv_results:
+                subgraphTriples_tmp = pd.read_csv(io.BytesIO(csv_results))
+                subgraphTriples = pd.concat([subgraphTriples, subgraphTriples_tmp], ignore_index=True, sort=False)
+                del subgraphTriples_tmp
+                subgraphTriples.drop_duplicates()
+                if len(subgraphTriples) > max_edges:
+                    break
+            else:
+                return None, None, None, None
     if len(subgraphTriples) > max_edges:
-        print("Subgraph not within range", len(subgraphTriples))
-        return None, None
-
+        print("Subgraph not within range", len(subgraphTriples), "edges")
+        print("Traversed in ", time.time() - traverse_time, "seconds")
+        return None, None, None, None
+    print("Extracted a candidate subgraph with", len(subgraphTriples), "triples")
+    conn = stardog.Connection(database_name, **connection_details)
     # Convert subgraphTriples to networkx "subgraph"
     # Parse Triples
     try:
@@ -635,37 +972,29 @@ def Traverse_rdf(params):
     nodes_df_o[["uuid", "type"]] = subgraphTriples[["object_uuid", "object_type"]]
     nodes_df = pd.concat([nodes_df_s, nodes_df_o], ignore_index=True)
     nodes_df_s, nodes_df_o, subgraphTriples = None, None, None
+    def handle_query(row, query, node):
+        try:
+            csv_results = conn.select(query, content_type='text/csv', bindings={'Node': node})
+            temp_df = pd.read_csv(io.BytesIO(csv_results))
+            if temp_df.empty:
+                attributes_df_tmp = {'type': row['type']}
+            else:
+                temp_df['type'] = row['type']
+                attributes_df_tmp = temp_df.to_dict('records')[0]
+        except Exception as e:
+            print("Error in Querying attributes for node", node, e)
+            attributes_df_tmp = {'type': row['type']}
+        return attributes_df_tmp
     nodes_df = nodes_df.drop_duplicates()
     attributes_df = {}
     for index, row in nodes_df.iterrows():
         Node_pattern = "\"" + str(row['uuid']) + "\""
         if row['type'] == 'process':
-            csv_results = conn.select(graph_sparql_queries['Process_attributes'], content_type='text/csv',
-                                      bindings={'Node': Node_pattern})
-            temp_df = pd.read_csv(io.BytesIO(csv_results))
-            if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': row['type']}
-            else:
-                temp_df['type'] = row['type']
-                attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
+            attributes_df[row['uuid']] = handle_query(row,graph_sparql_queries['Process_attributes'],Node_pattern)
         elif row['type'] == 'file':
-            csv_results = conn.select(graph_sparql_queries['File_attributes'], content_type='text/csv',
-                                      bindings={'Node': Node_pattern})
-            temp_df = pd.read_csv(io.BytesIO(csv_results))
-            if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': row['type']}
-            else:
-                temp_df['type'] = row['type']
-                attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
+            attributes_df[row['uuid']] = handle_query(row,graph_sparql_queries['File_attributes'], Node_pattern)
         elif row['type'] == 'flow':
-            csv_results = conn.select(graph_sparql_queries['Flow_attributes'], content_type='text/csv',
-                                      bindings={'Node': Node_pattern})
-            temp_df = pd.read_csv(io.BytesIO(csv_results))
-            if temp_df.empty:
-                attributes_df[row['uuid']] = {'type': row['type']}
-            else:
-                temp_df['type'] = 'flow'
-                attributes_df[row['uuid']] = temp_df.to_dict('records')[0]
+            attributes_df[row['uuid']] = handle_query(row,graph_sparql_queries['Flow_attributes'], Node_pattern)
         elif row['type'] in ['memory','pipe','shell']:
             attributes_df[row['uuid']] = {'type': row['type']}
         else:
@@ -674,15 +1003,19 @@ def Traverse_rdf(params):
     attributes_df, nodes_df, temp_df = None, None, None
     if subgraph.number_of_nodes() < args.min_nodes or subgraph.number_of_nodes() > max_nodes:
         print("Subgraph not within range", subgraph.number_of_nodes())
-        return None, None 
+        print("Traversed in ", time.time() - traverse_time, "seconds")
+        return None, None, None, None
+    print("Extracted a subgraph with", subgraph.number_of_nodes(), "nodes, and ", subgraph.number_of_edges(), "edges")
     print("Traversed Node in ", time.time() - traverse_time, "seconds")
-    return ioc,subgraph
+    conn.close()
+    return ioc, subgraph, query_memory_M, query_IO
 
 
 
 def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_suspicious_nodes):
     start_time = time.time()
-    start_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    global query_memory_M_lst, query_IO_lst
+    start_mem = getrusage(RUSAGE_SELF).ru_maxrss
     suspGraphs = []
     considered_per_ioc = {}
     represented_nodes_per_ioc = {}
@@ -700,23 +1033,34 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
         suspicious_nodes_dask = db.from_sequence(multi_queries, npartitions=cores)
         tmp_suspGraphs = suspicious_nodes_dask.map(lambda g: Traverse_rdf(g)).compute()
         tmp_suspGraphs = [suspGraphs for suspGraphs in tmp_suspGraphs if suspGraphs is not None]
-        for ioc,subgraph in tmp_suspGraphs:
+        for ioc, subgraph, query_memory_M, query_IO in tmp_suspGraphs:
             if subgraph:
-                print(subgraph.number_of_nodes(), subgraph.number_of_edges())
                 suspGraphs.append(subgraph.copy())
+                if query_IO:
+                    query_IO_lst.append(query_IO)
+                if query_memory_M:
+                    query_memory_M_lst.append(query_memory_M)
                 considered_per_ioc[ioc] += 1
                 subgraph.clear()
     else:
-        for ioc,nodes in matched_ioc_mask.items():
+        for ioc, nodes in matched_ioc_mask.items():
             if len(nodes) > 0:
                 for node in nodes:
-                    ioc,subgraph = Traverse_rdf([graph_sparql_queries,ioc, node])
-                    if subgraph:
-                        suspGraphs.append(subgraph.copy())
-                        considered_per_ioc[ioc] += 1
-                        subgraph.clear()
+                    tmp_suspGraphs = Traverse_rdf([graph_sparql_queries, ioc, node])
+                    if tmp_suspGraphs:
+                        _, subgraph, query_memory_M, query_IO = tmp_suspGraphs
+                        if subgraph:
+                            suspGraphs.append(subgraph.copy())
+                            if query_IO:
+                                query_IO_lst.append(query_IO)
+                            if query_memory_M:
+                                query_memory_M_lst.append(query_memory_M)
+                            considered_per_ioc[ioc] += 1
+                            subgraph.clear()
     # clear Suspicious Nodes Labels
+    conn = stardog.Connection(database_name, **connection_details)
     conn.update(graph_sparql_queries['Delete_Suspicious_Labels'])
+    conn.close()
     # Add ioc attributes
     revert_suspicious_nodes = dict((node, ioc) for ioc, list_nodes in suspicious_nodes.items() for node in list_nodes)
     for subgraph in suspGraphs:
@@ -740,12 +1084,14 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
               round(mean([supgraph.number_of_edges() for supgraph in suspGraphs])))
     print("Extract suspicious subgraphs in --- %s seconds ---" % (time.time() - start_time))
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+    print_memory_cpu_usage()
     return suspGraphs
 
 
 def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
     start_time = time.time()
     benignSubGraphs = []
+    global query_memory_M_lst, query_IO_lst
     if args.parallel:
         # Query with DASK
         cores = multiprocessing.cpu_count() - 2
@@ -756,15 +1102,19 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
             benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
             print("Number of Random Benign Seed Nodes:", len(benign_nodes))
             benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
-            multi_queries = [[graph_sparql_queries, node] for node in benign_nodes]
+            multi_queries = [[graph_sparql_queries,'na', node] for node in benign_nodes]
             benign_nodes_dask = db.from_sequence(multi_queries, npartitions=cores)
             tmp_benignSubGraphs = benign_nodes_dask.map(lambda g: Traverse_rdf(g)).compute()
-            for subgraph in tmp_benignSubGraphs:
+            for _, subgraph, query_memory_M, query_IO in tmp_benignSubGraphs:
                 if subgraph:
-                    print(subgraph.number_of_nodes(), subgraph.number_of_edges())
-                    benignSubGraphs.append(subgraph.copy())
+                    if subgraph.number_of_nodes() >= args.min_nodes and subgraph.number_of_nodes() <= args.max_nodes:
+                        benignSubGraphs.append(subgraph.copy())
+                        if query_IO:
+                            query_IO_lst.append(query_IO)
+                        if query_memory_M:
+                            query_memory_M_lst.append(query_memory_M)
                     subgraph.clear()
-            seed_number = 10
+            seed_number = cores
     else:
         # Query Sequentially
         csv_results = conn.select(graph_sparql_queries['Random_Benign_Nodes'], content_type='text/csv',
@@ -772,13 +1122,19 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
         benign_nodes = list(pd.read_csv(io.BytesIO(csv_results))["uuid"])
         print("Number of Random Benign Seed Nodes:", len(benign_nodes))
         for node in benign_nodes:
-            subgraph = Traverse_rdf([graph_sparql_queries, node])
-            if subgraph:
-                print(subgraph.number_of_nodes(), subgraph.number_of_edges())
-                benignSubGraphs.append(subgraph.copy())
-                subgraph.clear()
-            if len(benignSubGraphs) >= n_subgraphs:
-                break
+            tmp_benignSubGraph = Traverse_rdf([graph_sparql_queries, "na", node])
+            if tmp_benignSubGraph:
+                _, subgraph, query_memory_M, query_IO = tmp_benignSubGraph
+                if subgraph:
+                    if subgraph.number_of_nodes() >= args.min_nodes and subgraph.number_of_nodes() <= args.max_nodes:
+                        benignSubGraphs.append(subgraph.copy())
+                        if query_IO:
+                            query_IO_lst.append(query_IO)
+                        if query_memory_M:
+                            query_memory_M_lst.append(query_memory_M)
+                    subgraph.clear()
+                if len(benignSubGraphs) >= n_subgraphs:
+                    break
     print("Number of benign subgraphs:", len(benignSubGraphs))
     print("Max number of nodes in benign subgraphs:", max([supgraph.number_of_nodes() for supgraph in benignSubGraphs]))
     print("Min number of nodes in benign subgraphs:", min([supgraph.number_of_nodes() for supgraph in benignSubGraphs]))
@@ -790,7 +1146,9 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
           round(mean([supgraph.number_of_edges() for supgraph in benignSubGraphs])))
     print("--- %s seconds ---" % (time.time() - start_time))
     print("\nMemory usage: ", process.memory_info().rss / (1024 ** 2), "MB")
+    print_memory_cpu_usage()
     benign_nodes = None
+    conn.close()
     return benignSubGraphs
 
 
@@ -918,6 +1276,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     suspSubGraphs = extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes,
                                                                        all_suspicious_nodes)
@@ -926,6 +1285,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     checkpoint(suspSubGraphs,
                (
@@ -949,14 +1309,16 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
         print("\nprocessed", GRAPH_NAME, "with", query_graph_name,
               " in: --- %s seconds ---" % (time.time() - one_graph_time))
         print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
+        print_memory_cpu_usage("Extraction")
         return
     print("Encoding prediction subgraphs")
-    if args.parallel:
-        cores = multiprocessing.cpu_count() - 2
-        suspSubGraphs_dask = db.from_sequence(suspSubGraphs, npartitions=cores)
-        prediction_graphs_dgl = suspSubGraphs_dask.map(lambda g: encode_for_RGCN(g)).compute()
-    else:
-        prediction_graphs_dgl = [encode_for_RGCN(g) for g in suspSubGraphs]
+    # if args.parallel:
+    #     cores = multiprocessing.cpu_count() - 2
+    #     suspSubGraphs_dask = db.from_sequence(suspSubGraphs, npartitions=cores)
+    #     prediction_graphs_dgl = suspSubGraphs_dask.map(lambda g: encode_for_RGCN(g)).compute()
+    # else:
+    #     prediction_graphs_dgl = [encode_for_RGCN(g) for g in suspSubGraphs]
+    prediction_graphs_dgl = [encode_for_RGCN(g) for g in suspSubGraphs]
     checkpoint(prediction_graphs_dgl,
                (
                        "./dataset/" + args.dataset + "/experiments/" + args.output_prx + "/predict/dgl_prediction_graphs_" + query_graph_name + "_in_" + GRAPH_NAME + ".pt"))
@@ -972,6 +1334,7 @@ def process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name):
     print("\nprocessed", GRAPH_NAME, "with", query_graph_name," in: --- %s seconds ---" % (time.time() - one_graph_time))
     print("\nExtraction Memory usage: ", process.memory_info().rss / (1024 ** 2), "MB (based on psutil Lib)")
     print("\n Extraction Memory usage: ", extraction_mem / 1024, "MB (based on resource - ru_maxrss)")
+    print_memory_cpu_usage("Extraction")
     return
 
 
@@ -996,8 +1359,11 @@ def process_one_graph_training(GRAPH_IRI, sparql_queries, query_graphs, n_subgra
     benignSubGraphs_dgl = [encode_for_RGCN(g) for g in benignSubGraphs]
     benignSubGraphs = None
     # clear suspicious labels
+    conn = stardog.Connection(database_name, **connection_details)
     conn.update(graph_sparql_queries['Delete_Suspicious_Labels'])
+    conn.close()
     print("\nprocessed", GRAPH_NAME, " in: --- %s seconds ---" % (time.time() - one_graph_time))
+    print_memory_cpu_usage()
     return benignSubGraphs_dgl
 
 
@@ -1014,6 +1380,8 @@ def main():
     start_running_time = time.time()
     random.seed(123)
     print(args)
+    global query_memory_M_lst, query_IO_lst
+    query_memory_M_lst, query_IO_lst = [], []
     if args.parallel:
         cores = multiprocessing.cpu_count() - 2
         print("Number of used cores is ", cores)
@@ -1101,8 +1469,22 @@ def main():
             process_one_graph(GRAPH_IRI, sparql_queries, query_graph_name)
 
     print("---Total Running Time for", args.dataset, "host is: %s seconds ---" % (time.time() - start_running_time))
-    if args.parallel:
-        release_memory(client)
+    io_counters = process.io_counters()
+    program_IOPs = (io_counters[0] + io_counters[1]) / (time.time() - start_running_time)
+    print("program IOPS (over total time): ", program_IOPs)
+    print("I/O counters", io_counters)
+    # print("Average IOPS by subgraph extraction queries:", mean(query_time_IOPS_lst))
+
+    print("Total IOPS (over total time, including extraction query IO ):",
+          (io_counters[0] + io_counters[1] + sum(query_IO_lst)) / (time.time() - start_running_time))
+    print("Total extraction query IO", sum(query_IO_lst))
+    print("Total Disk I/O", io_counters[0] + io_counters[1] + sum(query_IO_lst))
+    if len(query_memory_M_lst) > 0:
+        print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
+        print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst), "M")
+        print("Min occupied memory by subgraph extraction queries:", min(query_memory_M_lst), "M")
+    print("**************************************\nLogs:\nquery_memory_M_lst:", query_memory_M_lst)
+
 
 
 if __name__ == "__main__":

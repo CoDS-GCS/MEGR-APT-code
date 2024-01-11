@@ -731,9 +731,9 @@ def label_candidate_nodes_rdf(graph_sparql_queries, query_graph_name):
     print("labelling Suspicious nodes in: --- %s seconds ---" % (time.time() - start_time))
     print("Memory usage : ", process.memory_info().rss / (1024 ** 2), "MB")
     print_memory_cpu_usage("Labelling candidate nodes")
+    conn.close()
     if args.training:
         return
-    conn.close()
     return suspicious_nodes, all_suspicious_nodes
 
 def isint(val):
@@ -1279,8 +1279,11 @@ def process_one_graph_training(GRAPH_IRI, sparql_queries, query_graphs, n_subgra
     benignSubGraphs_dgl = [encode_for_RGCN(g) for g in benignSubGraphs]
     benignSubGraphs = None
     # clear suspicious labels
+    conn = stardog.Connection(database_name, **connection_details)
     conn.update(graph_sparql_queries['Delete_Suspicious_Labels'])
+    conn.close()
     print("\nprocessed", GRAPH_NAME, " in: --- %s seconds ---" % (time.time() - one_graph_time))
+    print_memory_cpu_usage()
     return benignSubGraphs_dgl
 
 
@@ -1446,8 +1449,7 @@ def main():
         print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst), "M")
         print("Min occupied memory by subgraph extraction queries:", min(query_memory_M_lst), "M")
     print("**************************************\nLogs:\nquery_memory_M_lst:", query_memory_M_lst)
-    # if args.parallel:
-    #     release_memory(client)
+
 
 if __name__ == "__main__":
     main()
