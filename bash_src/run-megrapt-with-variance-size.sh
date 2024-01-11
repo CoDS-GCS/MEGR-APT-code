@@ -56,7 +56,7 @@ preprocess_graph () {
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
         echo "Store output in ${output_prx} at ${date}"
         mkdir -p logs/${dataset_name}/${output_prx}/
-        python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --extract-with-one-query --output-prx ${output_prx} --max-nodes-mult-qg ${Max_Nodes_Mult} --max-edges-mult-qg ${Max_Edges_Mult} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
+        python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py  --output-prx ${output_prx} --max-nodes-mult-qg ${Max_Nodes_Mult} --max-edges-mult-qg ${Max_Edges_Mult} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
     else
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
@@ -156,18 +156,18 @@ output_prx="${output_prx_root}_10_Nodes_25_Edges"
 echo "The output forlder is: ${output_prx}"
 run_megrapt ${output_prx} 10 25
 
-Max_Nodes_Mult=10
-for Max_Edges_Mult in {10,15,20,30,35,40};do
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo "The output forlder is: ${output_prx}"
-  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-done
-Max_Edges_Mult=25
-for Max_Nodes_Mult in {5,15,20,25,30};do
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo "The output forlder is: ${output_prx}"
-  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-done
+#Max_Nodes_Mult=10
+#for Max_Edges_Mult in {10,15,20,30,35,40};do
+#  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+#  echo "The output forlder is: ${output_prx}"
+#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#done
+#Max_Edges_Mult=25
+#for Max_Nodes_Mult in {5,15,20,25,30};do
+#  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+#  echo "The output forlder is: ${output_prx}"
+#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#done
 #
 #output_prx="${output_prx_root}_10_Nodes_15_Edges"
 #echo "The output forlder is: ${output_prx}"
