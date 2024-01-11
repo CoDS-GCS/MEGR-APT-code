@@ -33,8 +33,8 @@ then
   load_graph benign_BSD_provenance_graph
 elif [[ "$dataset" == "theia" ]]
 then
-  load_graph attack_Linux_1&2_provenance_graph
-  load_graph benign_Linux_provenance_graph
+  load_graph attack_Linux_1_2_provenance_graph_v2
+  load_graph benign_Linux_provenance_graph_v2
 elif [[ "$dataset" == "trace" ]]
 then
   load_graph attack_Linux_4_provenance_graph
