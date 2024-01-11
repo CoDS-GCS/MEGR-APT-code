@@ -125,6 +125,7 @@ run_megrapt () {
       preprocess_graph Custom_PowerShell_Empire attack_SysClient0501 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
       sleep 300
       preprocess_graph Plain_PowerShell_Empire attack_SysClient0201 ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+      sleep 300
   else
       echo "Undefined host."
   fi
