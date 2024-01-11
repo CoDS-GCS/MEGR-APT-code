@@ -152,22 +152,26 @@ run_megrapt () {
   echo "Total Time is ${runtime} seconds" >> logs/${dataset_name}/${output_prx}/total_running_time_with_bash.txt
 }
 ## The default
-output_prx="${output_prx_root}_10_Nodes_25_Edges"
-echo "The output forlder is: ${output_prx}"
-run_megrapt ${output_prx} 10 25
+#output_prx="${output_prx_root}_10_Nodes_25_Edges"
+#echo "The output forlder is: ${output_prx}"
+#run_megrapt ${output_prx} 10 25
 
-Max_Nodes_Mult=10
-for Max_Edges_Mult in {10,15,20,30,35,40};do
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo "The output forlder is: ${output_prx}"
-  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-done
-Max_Edges_Mult=25
-for Max_Nodes_Mult in {5,15,20,25,30};do
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo "The output forlder is: ${output_prx}"
-  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-done
+#Max_Nodes_Mult=10
+#for Max_Edges_Mult in {10,15,20,30,35,40};do
+#  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+#  echo "The output forlder is: ${output_prx}"
+#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#done
+#Max_Edges_Mult=25
+#for Max_Nodes_Mult in {5,15,20,25,30};do
+#  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+#  echo "The output forlder is: ${output_prx}"
+#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#done
+
+output_prx="${output_prx_root}_10_Nodes_15_Edges"
+echo "The output forlder is: ${output_prx}"
+run_megrapt ${output_prx} 10 15
 
 handle () {
   QG=$1
