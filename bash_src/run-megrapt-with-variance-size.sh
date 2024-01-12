@@ -6,6 +6,8 @@ read -p "Enter the stardog database name:" stardog_db
 echo "Available Hosts (cadets, theia, trace, optc)"
 read -p "Enter the host name:" host
 read -p "Enter the experiment folder name:" output_prx_root
+export PATH="$PATH:/opt/stardog/stardog-9.2.1/bin"
+export STARDOG_JAVA_ARGS="-Dstardog.default.cli.server=https://sd-d63d428a.stardog.cloud:5820"
 
 if [[ "$host" == "cadets" ]]
 then
@@ -47,12 +49,14 @@ preprocess_graph () {
     output_prx=$3
     Max_Nodes_Mult=$4
     Max_Edges_Mult=$5
+    stardog-admin db online ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
     echo ${output_prx}
     echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
     echo "Store output in ${output_prx} at ${date}"
     mkdir -p logs/${dataset_name}/${output_prx}/
     python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --max-nodes-mult-qg ${Max_Nodes_Mult} --max-edges-mult-qg ${Max_Edges_Mult} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
     sleep 60
+    stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
 }
 
 
@@ -156,58 +160,59 @@ run_one_case () {
 }
 
 # The default
-output_prx="${output_prx_root}_10_Nodes_25_Edges"
-echo "The output forlder is: ${output_prx}"
-run_megrapt ${output_prx} 10 25
-sleep 180
-
-Max_Nodes_Mult=10
-for Max_Edges_Mult in {10,15,20,30,35,40};do
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo "The output forlder is: ${output_prx}"
-  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-  sleep 180
-done
-
-Max_Edges_Mult=25
-for Max_Nodes_Mult in {5,15,20,25,30};do
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo "The output forlder is: ${output_prx}"
-  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-  sleep 180
-done
-
-
-# ----------------------------------- Complete OpTC --------------------------------------
+#output_prx="${output_prx_root}_10_Nodes_25_Edges"
+#echo "The output forlder is: ${output_prx}"
+#run_megrapt ${output_prx} 10 25
+#sleep 180
+#
 #Max_Nodes_Mult=10
-#for Max_Edges_Mult in {25,30,35};do
+#for Max_Edges_Mult in {10,15,20,30,35,40};do
 #  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
 #  echo "The output forlder is: ${output_prx}"
-#  run_one_case Custom_PowerShell_Empire attack_SysClient0501 ${Max_Nodes_Mult} ${Max_Edges_Mult}
-#  sleep 300
+#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#  sleep 180
 #done
 #
 #Max_Edges_Mult=25
-#for Max_Nodes_Mult in {5,15,20,25};do
+#for Max_Nodes_Mult in {5,15,20,25,30};do
 #  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
 #  echo "The output forlder is: ${output_prx}"
-#  run_one_case Custom_PowerShell_Empire attack_SysClient0501 ${Max_Nodes_Mult} ${Max_Edges_Mult}
-#  sleep 300
+#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+#  sleep 180
 #done
-#
-#run_one_case Plain_PowerShell_Empire attack_SysClient0201 10 30
-#sleep 300
-#
-#run_one_case Plain_PowerShell_Empire attack_SysClient0201 5 25
-#sleep 300
-#
-#run_one_case Plain_PowerShell_Empire attack_SysClient0201 25 25
-#sleep 300
-#
-#output_prx="${output_prx_root}_10_Nodes_40_Edges"
-#run_megrapt ${output_prx} 10 40
-#output_prx="${output_prx_root}_30_Nodes_25_Edges"
-#run_megrapt ${output_prx} 30 25
+
+
+# ----------------------------------- Complete OpTC --------------------------------------
+Max_Nodes_Mult=10
+for Max_Edges_Mult in {25,30,35};do
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo "The output forlder is: ${output_prx}"
+  run_one_case Custom_PowerShell_Empire attack_SysClient0501 ${Max_Nodes_Mult} ${Max_Edges_Mult}
+  sleep 300
+done
+
+Max_Edges_Mult=25
+for Max_Nodes_Mult in {5,15,20,25};do
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo "The output forlder is: ${output_prx}"
+  run_one_case Custom_PowerShell_Empire attack_SysClient0501 ${Max_Nodes_Mult} ${Max_Edges_Mult}
+  sleep 300
+done
+
+run_one_case Plain_PowerShell_Empire attack_SysClient0201 10 30
+sleep 300
+
+run_one_case Plain_PowerShell_Empire attack_SysClient0201 5 25
+sleep 300
+
+run_one_case Plain_PowerShell_Empire attack_SysClient0201 25 25
+sleep 300
+
+output_prx="${output_prx_root}_10_Nodes_40_Edges"
+run_megrapt ${output_prx} 10 40
+sleep 300
+output_prx="${output_prx_root}_30_Nodes_25_Edges"
+run_megrapt ${output_prx} 30 25
 # ---------------------------------------------------------------
 
 
