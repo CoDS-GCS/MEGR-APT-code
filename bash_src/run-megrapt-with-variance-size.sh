@@ -51,7 +51,7 @@ preprocess_graph () {
     Max_Nodes_Mult=$4
     Max_Edges_Mult=$5
     echo ${output_prx}
-    stardog-admin db online ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
+#    stardog-admin db online ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
         echo "Store output in ${output_prx} at ${date}"
@@ -60,8 +60,8 @@ preprocess_graph () {
     else
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
-    stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
-    sleep 20
+#    stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
+    sleep 60
 }
 
 
@@ -152,9 +152,10 @@ run_megrapt () {
   echo "Total Time is ${runtime} seconds" >> logs/${dataset_name}/${output_prx}/total_running_time_with_bash.txt
 }
 # The default
-output_prx="${output_prx_root}_10_Nodes_25_Edges"
-echo "The output forlder is: ${output_prx}"
-run_megrapt ${output_prx} 10 25
+handle Malicious_Upgrade benign_SysClient0501 10 25
+#output_prx="${output_prx_root}_10_Nodes_25_Edges"
+#echo "The output forlder is: ${output_prx}"
+#run_megrapt ${output_prx} 10 25
 
 #Max_Nodes_Mult=10
 #for Max_Edges_Mult in {10,15,20,30,35,40};do
