@@ -96,6 +96,8 @@ if [[ "$skip_hyper" == "y" ]]; then
     done
   done
 else
+  #The default parameter
+  train_model 2 0.001 64 64 32 0 1000 rgcn
   if [[ "$host" == "cadets" ]]
   then
     train_model 2 0.001 128 92 64 0 1000 rgcn
