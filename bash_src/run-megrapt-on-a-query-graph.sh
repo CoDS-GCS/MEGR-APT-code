@@ -74,6 +74,8 @@ else
   python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --database-name ${stardog_db} --parallel --test-a-qg ${QG} --pg-name ${pg_name} --output-prx ${output_prx} > logs/${dataset_name}/${output_prx}/preprocessing_${stardog_db}_${QG}_in_${pg_name}_${date}.txt
 fi
 
+# Default Parameters
+predict_model 2 0.001 64 64 32 0 1000 ${Threshold}
 if [[ "$host" == "cadets" ]]
 then
   predict_model 2 0.001 128 92 64 0 1000 0.4

@@ -49,9 +49,20 @@ parser.add_argument('--traverse-without-time', help='Consider timestamp while tr
 parser.add_argument("--test-a-qg",type=str,default=None,help="The name of the tested query graph.")
 parser.add_argument("--pg-name",type=str,default=None,help="The nae of the tested provenance graph.")
 parser.add_argument('--database-name', type=str, help='Stardog database name', default='tc3-trace')
+parser.add_argument('--extract-with-one-query', help='Extract with one complex query', action="store_true",default=False)
+parser.add_argument('--explain-query', help='Explain queries', action="store_true",default=False)
 args = parser.parse_args()
 
-
+def print_memory_cpu_usage(message=None):
+    print(message)
+    print("Memory usage (ru_maxrss) : ",getrusage(RUSAGE_SELF).ru_maxrss/1024," MB")
+    print("Memory usage (psutil) : ", psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2), "MB")
+    print('The CPU usage is (per process): ', psutil.Process(os.getpid()).cpu_percent(4))
+    load1, load5, load15 = psutil.getloadavg()
+    cpu_usage = (load15 / os.cpu_count()) * 100
+    print("The CPU usage is : ", cpu_usage)
+    print('used virtual memory GB:', psutil.virtual_memory().used / (1024.0 ** 3), " percent",
+          psutil.virtual_memory().percent)
 def read_json_graph(filename):
     with open(filename) as f:
         js_graph = json.load(f)

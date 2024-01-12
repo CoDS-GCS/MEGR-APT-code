@@ -4,11 +4,11 @@ output_prx=Temp
 read -p "Enter the experiment folder name:" output_prx
 echo "The output forlder is: ${output_prx}"
 read -p "Enter the stardog database name:" stardog_db
+read -p "Enter the stardog username:" stardogUserName
+read -p "Enter the stardog password:" stardogpassword
 echo "Available Hosts (cadets, theia, trace, optc)"
 read -p "Enter the host name:" host
 
-export PATH="$PATH:/opt/stardog/stardog-9.2.1/bin"
-export STARDOG_JAVA_ARGS="-Dstardog.default.cli.server=https://sd-d63d428a.stardog.cloud:5820"
 
 
 Max_Nodes_Mult=10
@@ -54,7 +54,7 @@ preprocess_graph () {
     specific_QG=$3
     QG_folder=$4
     QG_IOCs=$5
-    stardog-admin db online ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
+    stardog-admin db online ${stardog_db} -u ${stardogUserName} -p ${stardogpassword}
     if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
     
         echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
@@ -70,7 +70,7 @@ preprocess_graph () {
     else
       echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
     fi
-    stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
+    stardog-admin db offline 1m ${stardog_db} -u ${stardogUserName} -p ${stardogpassword}
     sleep 60
 }
 

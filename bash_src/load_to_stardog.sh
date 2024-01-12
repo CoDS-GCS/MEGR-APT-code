@@ -3,14 +3,14 @@ date=$(date +'%d_%m_%Y')
 echo "Available Hosts (cadets, theia, trace, optc)"
 read -p "Enter the host name:" dataset
 read -p "Enter the stardog dataset name:" stardogDataseet
-#read -p "Enter the stardog username:" stardogUserName
+read -p "Enter the stardog username:" stardogUserName
+read -p "Enter the stardog password:" stardogpassword
 read -p "Enter the turtle provenance graphs folder path:" PG_path
 mkdir -p logs/${dataset}/
 load_graph () {
    graph_name=$1
    echo ${graph_name}.ttl >> logs/${dataset}/loading_${dataset}_provenance_graph_${date}.txt
-#   stardog data add --server-side http://localhost:${stardogPort}/${stardogDataseet} ${PG_path}/${graph_name}.ttl > logs/${dataset}/loading_${dataset}_provenance_graph_${date}.txt
-   stardog data add ${stardogDataseet} ${PG_path}/${graph_name}.ttl -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023 >> logs/${dataset}/loading_${dataset}_provenance_graph_${date}.txt
+   stardog data add ${stardogDataseet} ${PG_path}/${graph_name}.ttl -u ${stardogUserName} -p ${stardogpassword} >> logs/${dataset}/loading_${dataset}_provenance_graph_${date}.txt
 
 }
 

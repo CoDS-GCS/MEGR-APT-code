@@ -80,11 +80,6 @@ mkdir -p model/megrapt/${dataset_name}/hyperparameter/
 Threshold=0.4
 ep=1000
 
-#DR=0
-#LR=0.0001
-#layer=2
-#train_model ${layer} ${LR} 64 64 32 ${DR} ${ep} rgcn
-
 for layer in {1,2,3};do
   DR=0
   LR=0.001
@@ -100,51 +95,3 @@ for layer in {1,2,3};do
   done
 done
 
-
-
-#read -p "Do you want to perform Hyper-parameters (y/N)": skip_hyper
-#if [[ "$skip_hyper" == "y" ]]; then
-#  epochs=1000
-#  for layers in {1,2};do
-#    for learning_rate in {0.001,0.0001,0.01};do
-#        for dropout in {0,0.5};do
-#          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt ]
-#          then
-#            echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}.pt"
-#            train_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} rgcn
-#          fi
-#          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_128-92-64_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
-#          then
-#            echo "Predicting"
-#            predict_model ${layers} ${learning_rate} 128 92 64 ${dropout} ${epochs} ${Threshold}
-#          fi
-#          if [ ! -f ./model/megrapt/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt ]
-#          then
-#            echo "Training ${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}.pt"
-#            train_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} rgcn
-#          fi
-#          if [ ! -f logs/${dataset_name}/hyperparameter/${dataset_name}_${layers}rgcn_Lr${learning_rate}_Dr${dropout}_64-64-32_${epochs}_TH${Threshold}_${output_prx}_*.txt ]
-#          then
-#            echo "Predicting"
-#            predict_model ${layers} ${learning_rate} 64 64 32 ${dropout} ${epochs} ${Threshold}
-#          fi
-#        done
-#    done
-#  done
-#else
-#  if [[ "$host" == "cadets" ]]
-#  then
-#    predict_model 2 0.001 128 92 64 0 1000 ${Threshold}
-#  elif [[ "$host" == "theia" ]]
-#  then
-#    predict_model 2 0.001 64 64 32 0.5 1000 ${Threshold}
-#  elif [[ "$host" == "trace" ]]
-#  then
-#    predict_model 1 0.0001 128 92 64 0 1000 ${Threshold}
-#  elif [[ "$host" == "optc" ]]
-#  then
-#    predict_model 1 0.0001 128 92 64 0 1000 ${Threshold}
-#  else
-#    echo "Undefined host."
-#  fi
-#fi
