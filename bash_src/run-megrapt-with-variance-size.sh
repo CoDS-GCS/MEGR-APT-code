@@ -51,16 +51,12 @@ preprocess_graph () {
     Max_Nodes_Mult=$4
     Max_Edges_Mult=$5
     echo ${output_prx}
-#    stardog-admin db online ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
-    if [ ! -f ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt ]; then
-        echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
-        echo "Store output in ${output_prx} at ${date}"
-        mkdir -p logs/${dataset_name}/${output_prx}/
-        python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --max-nodes-mult-qg ${Max_Nodes_Mult} --max-edges-mult-qg ${Max_Edges_Mult} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
-    else
-      echo "Suspicious Subgraphs extracted in ./dataset/${dataset}/experiments/${output_prx}/raw/torch_prediction/${QG}_in_${pg_name}.pt "
-    fi
-#    stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
+    stardog-admin db online ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
+    echo "Extract suspicious subgraphs for ${host}, ${QG}, ${pg_name}"
+    echo "Store output in ${output_prx} at ${date}"
+    mkdir -p logs/${dataset_name}/${output_prx}/
+    python -u src/${dataset_folder}/extract_rdf_subgraphs_${host}.py --parallel --output-prx ${output_prx} --max-nodes-mult-qg ${Max_Nodes_Mult} --max-edges-mult-qg ${Max_Edges_Mult} --test-a-qg ${QG} --pg-name ${pg_name} >> logs/${dataset_name}/${output_prx}/MEGRAPT_preprocessing_${host}_rdf_${date}.txt
+    stardog-admin db offline 1m ${stardog_db} -u ahmed3amerai@gmail.com -p Stardog_Ahmed_2023
     sleep 60
 }
 
@@ -164,24 +160,50 @@ handle () {
   predict_model 1 0.0001 128 92 64 0 1000 ${Threshold} ${output_prx}
 }
 # The default
-#handle Malicious_Upgrade benign_SysClient0501 10 25
-output_prx="${output_prx_root}_10_Nodes_25_Edges"
-echo "The output forlder is: ${output_prx}"
-run_megrapt ${output_prx} 10 25
+
+#output_prx="${output_prx_root}_10_Nodes_25_Edges"
+#echo "The output forlder is: ${output_prx}"
+#run_megrapt ${output_prx} 10 25
+
+
+
+Max_Nodes_Mult=10
+for Max_Edges_Mult in {25,30,35};do
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo "The output forlder is: ${output_prx}"
+  handle Custom_PowerShell_Empire attack_SysClient0501 ${Max_Nodes_Mult} ${Max_Edges_Mult}
+  sleep 300
+done
+
+Max_Edges_Mult=25
+for Max_Nodes_Mult in {5,15,20,25};do
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo "The output forlder is: ${output_prx}"
+  handle Custom_PowerShell_Empire attack_SysClient0501 ${Max_Nodes_Mult} ${Max_Edges_Mult}
+  sleep 300
+done
+
+handle Plain_PowerShell_Empire attack_SysClient0201 10 30
+sleep 300
+
+handle Plain_PowerShell_Empire attack_SysClient0201 5 25
+sleep 300
+
+handle Plain_PowerShell_Empire attack_SysClient0201 25 25
+sleep 300
+
+output_prx="${output_prx_root}_10_Nodes_40_Edges"
+run_megrapt ${output_prx} 10 40
+output_prx="${output_prx_root}_30_Nodes_25_Edges"
+run_megrapt ${output_prx} 30 25
 
 #Max_Nodes_Mult=10
-#for Max_Edges_Mult in {10,15,20,30,35,40};do
+#for Max_Edges_Mult in {35,40};do
 #  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
 #  echo "The output forlder is: ${output_prx}"
 #  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
 #done
-#Max_Edges_Mult=25
-#for Max_Nodes_Mult in {5,15,20,25,30};do
-#  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-#  echo "The output forlder is: ${output_prx}"
-#  run_megrapt ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-#done
-#
+
 #output_prx="${output_prx_root}_10_Nodes_15_Edges"
 #echo "The output forlder is: ${output_prx}"
 #run_megrapt ${output_prx} 10 15
