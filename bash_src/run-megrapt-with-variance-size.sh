@@ -151,6 +151,18 @@ run_megrapt () {
   runtime=$(((end_time-start_time)-(60*16)-300-300))
   echo "Total Time is ${runtime} seconds" >> logs/${dataset_name}/${output_prx}/total_running_time_with_bash.txt
 }
+handle () {
+  QG=$1
+  pg_name=$2
+  Max_Nodes_Mult=$3
+  Max_Edges_Mult=$4
+  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
+  echo output_prx
+  preprocess_graph ${QG} ${pg_name} ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
+  # Default Parameters
+  predict_model 2 0.001 64 64 32 0 1000 ${Threshold} ${output_prx}
+  predict_model 1 0.0001 128 92 64 0 1000 ${Threshold} ${output_prx}
+}
 # The default
 handle Malicious_Upgrade benign_SysClient0501 10 25
 #output_prx="${output_prx_root}_10_Nodes_25_Edges"
@@ -173,19 +185,6 @@ handle Malicious_Upgrade benign_SysClient0501 10 25
 #output_prx="${output_prx_root}_10_Nodes_15_Edges"
 #echo "The output forlder is: ${output_prx}"
 #run_megrapt ${output_prx} 10 15
-
-handle () {
-  QG=$1
-  pg_name=$2
-  Max_Nodes_Mult=$3
-  Max_Edges_Mult=$4
-  output_prx="${output_prx_root}_${Max_Nodes_Mult}_Nodes_${Max_Edges_Mult}_Edges"
-  echo output_prx
-  preprocess_graph ${QG} ${pg_name} ${output_prx} ${Max_Nodes_Mult} ${Max_Edges_Mult}
-  # Default Parameters
-  predict_model 2 0.001 64 64 32 0 1000 ${Threshold} ${output_prx}
-  predict_model 1 0.0001 128 92 64 0 1000 ${Threshold} ${output_prx}
-}
 
 # ----------------------------------- Complete OpTC --------------------------------------
 #handle Custom_PowerShell_Empire attack_SysClient0501 25 30
