@@ -52,6 +52,7 @@ parser.add_argument('--extract-with-one-query', help='Extract with one complex q
 parser.add_argument("--test-a-qg",type=str,default=None,help="The name of the tested query graph.")
 parser.add_argument("--pg-name",type=str,default=None,help="The nae of the tested provenance graph.")
 parser.add_argument('--database-name', type=str, help='Stardog database name', default='tc3-cadets')
+parser.add_argument('--explain-query', help='Explain queries', action="store_true",default=False)
 args = parser.parse_args()
 
 def print_memory_cpu_usage(message=None):
@@ -792,13 +793,17 @@ def Traverse_rdf(params):
         try:
             csv_results = conn.select(query, content_type='text/csv', bindings={'IOC_node': node},
                                       limit=(max_edges + 10),timeout=300000)
-            explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
-            query_memory_M, query_IO = parse_profiled_query(explain_query)
+            if args.explain_query:
+                explain_query = conn.explain(query.replace("?IOC_node", node), profile=True)
+                query_memory_M, query_IO = parse_profiled_query(explain_query)
         except Exception as e:
             print("Error in Querying subgraph with seed", node, e)
             return None, None, None
         conn.close()
-        return csv_results, query_memory_M, query_IO
+        if args.explain_query:
+            return csv_results, query_memory_M, query_IO
+        else:
+            return csv_results, None, None
     if args.extract_with_one_query:
         conn = stardog.Connection(database_name, **connection_details)
         if args.training:
@@ -815,17 +820,19 @@ def Traverse_rdf(params):
                     csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'],
                                               content_type='text/csv',
                                               bindings={'IOC_node': node}, limit=(max_edges+10))
-                    explain_query = conn.explain(
-                        graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),
-                        profile=True)
-                    query_memory_M, query_IO = parse_profiled_query(explain_query)
+                    if args.explain_query:
+                        explain_query = conn.explain(
+                            graph_sparql_queries['Extract_Suspicious_Subgraph_withTime'].replace("?IOC_node", node),
+                            profile=True)
+                        query_memory_M, query_IO = parse_profiled_query(explain_query)
                 else:
                     csv_results = conn.select(graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'], content_type='text/csv',
                                               bindings={'IOC_node': node}, limit=(max_edges+10))
-                    explain_query = conn.explain(
-                        graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node),
-                        profile=True)
-                    query_memory_M, query_IO = parse_profiled_query(explain_query)
+                    if args.explain_query:
+                        explain_query = conn.explain(
+                            graph_sparql_queries['Extract_Suspicious_Subgraph_NoTime'].replace("?IOC_node", node),
+                            profile=True)
+                        query_memory_M, query_IO = parse_profiled_query(explain_query)
             except Exception as e:
                 print("Error in Querying subgraph with seed", node, e)
                 return None, None, None, None
@@ -931,7 +938,10 @@ def Traverse_rdf(params):
     print("Extracted a subgraph with", subgraph.number_of_nodes(), "nodes, and ", subgraph.number_of_edges(), "edges")
     print("Traversed in ", time.time() - traverse_time, "seconds")
     conn.close()
-    return ioc,subgraph, query_memory_M, query_IO
+    if args.explain_query:
+        return ioc,subgraph, query_memory_M, query_IO
+    else:
+        return ioc, subgraph, None, None
 
 
 
@@ -960,10 +970,11 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
         for ioc,subgraph,query_memory_M, query_IO in tmp_suspGraphs:
             if subgraph:
                 suspGraphs.append(subgraph.copy())
-                if query_IO:
-                    query_IO_lst.append(query_IO)
-                if query_memory_M:
-                    query_memory_M_lst.append(query_memory_M)
+                if args.explain_query:
+                    if query_IO:
+                        query_IO_lst.append(query_IO)
+                    if query_memory_M:
+                        query_memory_M_lst.append(query_memory_M)
                 considered_per_ioc[ioc] += 1
                 subgraph.clear()
     else:
@@ -975,10 +986,11 @@ def extract_suspGraphs_depth_rdf(graph_sparql_queries, suspicious_nodes, all_sus
                         _,subgraph,query_memory_M, query_IO = tmp_suspGraphs
                         if subgraph:
                             suspGraphs.append(subgraph.copy())
-                            if query_IO:
-                                query_IO_lst.append(query_IO)
-                            if query_memory_M:
-                                query_memory_M_lst.append(query_memory_M)
+                            if args.explain_query:
+                                if query_IO:
+                                    query_IO_lst.append(query_IO)
+                                if query_memory_M:
+                                    query_memory_M_lst.append(query_memory_M)
                             considered_per_ioc[ioc] += 1
                             subgraph.clear()
 
@@ -1036,10 +1048,11 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
                 if subgraph:
                     if subgraph.number_of_nodes() >= args.min_nodes and subgraph.number_of_nodes() <= args.max_nodes:
                         benignSubGraphs.append(subgraph.copy())
-                        if query_IO:
-                            query_IO_lst.append(query_IO)
-                        if query_memory_M:
-                            query_memory_M_lst.append(query_memory_M)
+                        if args.explain_query:
+                            if query_IO:
+                                query_IO_lst.append(query_IO)
+                            if query_memory_M:
+                                query_memory_M_lst.append(query_memory_M)
                     subgraph.clear()
             seed_number = cores
     else:
@@ -1055,10 +1068,11 @@ def Extract_Random_Benign_Subgraphs(graph_sparql_queries, n_subgraphs):
                 if subgraph:
                     if subgraph.number_of_nodes() >= args.min_nodes and subgraph.number_of_nodes() <= args.max_nodes:
                         benignSubGraphs.append(subgraph.copy())
-                        if query_IO:
-                            query_IO_lst.append(query_IO)
-                        if query_memory_M:
-                            query_memory_M_lst.append(query_memory_M)
+                        if args.explain_query:
+                            if query_IO:
+                                query_IO_lst.append(query_IO)
+                            if query_memory_M:
+                                query_memory_M_lst.append(query_memory_M)
                     subgraph.clear()
                 if len(benignSubGraphs) >= n_subgraphs:
                     break
@@ -1439,16 +1453,16 @@ def main():
     print("program IOPS (over total time): ", program_IOPs)
     print("I/O counters", io_counters)
     # print("Average IOPS by subgraph extraction queries:", mean(query_time_IOPS_lst))
-
-    print("Total IOPS (over total time, including extraction query IO ):",
-          (io_counters[0] + io_counters[1] + sum(query_IO_lst)) / (time.time() - start_running_time))
-    print("Total extraction query IO", sum(query_IO_lst))
-    print("Total Disk I/O", io_counters[0] + io_counters[1] + sum(query_IO_lst))
-    if len(query_memory_M_lst) > 0:
-        print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
-        print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst), "M")
-        print("Min occupied memory by subgraph extraction queries:", min(query_memory_M_lst), "M")
-    print("**************************************\nLogs:\nquery_memory_M_lst:", query_memory_M_lst)
+    if args.explain_query:
+        print("Total IOPS (over total time, including extraction query IO ):",
+              (io_counters[0] + io_counters[1] + sum(query_IO_lst)) / (time.time() - start_running_time))
+        print("Total extraction query IO", sum(query_IO_lst))
+        print("Total Disk I/O", io_counters[0] + io_counters[1] + sum(query_IO_lst))
+        if len(query_memory_M_lst) > 0:
+            print("Average occupied memory by subgraph extraction queries:", mean(query_memory_M_lst), "M")
+            print("Max occupied memory by subgraph extraction queries:", max(query_memory_M_lst), "M")
+            print("Min occupied memory by subgraph extraction queries:", min(query_memory_M_lst), "M")
+        print("**************************************\nLogs:\nquery_memory_M_lst:", query_memory_M_lst)
 
 
 if __name__ == "__main__":

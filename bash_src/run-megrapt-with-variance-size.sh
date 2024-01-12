@@ -164,10 +164,10 @@ handle () {
   predict_model 1 0.0001 128 92 64 0 1000 ${Threshold} ${output_prx}
 }
 # The default
-handle Malicious_Upgrade benign_SysClient0501 10 25
-#output_prx="${output_prx_root}_10_Nodes_25_Edges"
-#echo "The output forlder is: ${output_prx}"
-#run_megrapt ${output_prx} 10 25
+#handle Malicious_Upgrade benign_SysClient0501 10 25
+output_prx="${output_prx_root}_10_Nodes_25_Edges"
+echo "The output forlder is: ${output_prx}"
+run_megrapt ${output_prx} 10 25
 
 #Max_Nodes_Mult=10
 #for Max_Edges_Mult in {10,15,20,30,35,40};do
