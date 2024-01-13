@@ -615,6 +615,7 @@ def Traverse_rdf(params):
     if len(subgraphTriples) > max_edges:
         print("Subgraph not within range", len(subgraphTriples), "edges")
         return None, None
+    #### ToDo: traverse_with_a_query ####
     # Convert subgraphTriples to networkx "subgraph"
     # Parse Triples
     try:
