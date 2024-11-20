@@ -7,13 +7,13 @@ def get_postgres_cred(dataset):
 
 
 def get_stardog_cred(dataset):
+    stardog_cloud = ""
+    stardog_email = ""
+    stardog_password = ""
     connection_details = {
-        # 'endpoint': 'http://localhost:17010',
-        # 'username': 'ahmed',
-        # 'password': 'Ahmed_2022'
-        'endpoint': 'https://sd-d63d428a.stardog.cloud:5820',
-        'username': 'ahmed3amerai@gmail.com',
-        'password': 'Stardog_Ahmed_2023'
+        'endpoint': stardog_cloud,
+        'username': stardog_email,
+        'password': stardog_password
     }
     database_name = dataset
     return database_name, connection_details
