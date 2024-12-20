@@ -9,12 +9,14 @@ The system consist of multiple python scripts and other bash script to command t
 - `/bash_src` directory holds all bash scripts.
 - `/technical_reports` directory contains a separate documentation file to explain scripts.
 - `/logs` directory is the default location for all generated system logs
-- `/model` directory is the default location for all GNN trained models.
-- `/dataset` directory is the default location for query graphs, IOC files, experiments checkpoints and results and detected subgraphs.      
-- `Investigation_Reports.ipynb` : A notebook with scripts to generate investigation reportsfor detected subgraphs. the notebook includes a demo scenario for two query graphs from DARPA TC3 CADETS host. 
+- `/model` directory is the default location for all GNN-trained models.
+- `/dataset` directory is the default location for query graphs, IOC files, experiments checkpoints, and results and detected subgraphs.      
+- `Investigation_Reports.ipynb`: A notebook with scripts to generate investigation reports for detected subgraphs. the notebook includes a demo scenario for two query graphs from DARPA TC3 CADETS host. 
 
 ## Installation
 To setup the environment install `requirements.txt` then `torch_requirements.txt`. We prepared an example bash script for setting up the environment `setup_environment.sh`, Please recheck before using it. 
+
+The Stardog graph database instance should be set up, and the RDF Provenance Graphs should be loaded into it using `bash_src/load_to_stardog.sh`. The RDF Provenance Graphs are available at this [link](https://drive.google.com/drive/folders/1tCIcOoP8vgQUnq6oMN_aqMo6RgdCHazD?usp=drive_link). 
 
 ## MEGR-APT system Architecture 
 ![System Architecture](System_Architecture.png)
