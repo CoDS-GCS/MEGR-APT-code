@@ -1,4 +1,5 @@
 # MEGR-APT
+This is the code for the paper "MEGR-APT: A Memory-Efficient APT Hunting System Based on Attack Representation Learning".  
 MEGR-APT is a scalable APT hunting system to discover suspicious subgraphs matching an attack scenario (query graph) published in Cyber Threat Intelligence (CTI) reports.
 MEGR-APT hunts APTs in a twofold process: (i) memory-efficient suspicious subgraphs extraction, and (ii) fast subgraph matching based on graph neural network (GNN) and attack representation learning. 
 
@@ -41,3 +42,17 @@ To train a GNN graph matching model for MEGR-APT, you need to configure training
 2. Use `compute_ged_for_training.py` to compute GED for the training set ( This step run is computationally expensive, takes long time, however it runs in parallel using multiple cores.).  
 3. Run `main.py` with the selected model training parameters as arguments ( See the GNN matching documentation for more details). 
 The training pipeline could be run using `train_megrapt_model.sh` bash script.
+
+## Citation 
+### Bibtex
+```
+@article{aly2024megr,
+  title={{MEGR-APT}: A Memory-Efficient {APT} Hunting System Based on Attack Representation Learning},
+  author={Aly, Ahmed and Iqbal, Shahrear and Youssef, Amr and Mansour, Essam},
+  journal={IEEE Transactions on Information Forensics and Security},
+  volume={19},  
+  pages={5257--5271},
+  year={2024},
+  publisher={IEEE}
+}
+```
