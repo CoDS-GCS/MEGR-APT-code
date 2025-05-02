@@ -43,7 +43,7 @@ parso==0.8.3
 partd==1.2.0
 pexpect==4.8.0
 pickleshare==0.7.5
-Pillow==9.1.0
+Pillow==10.3.0
 prompt-toolkit==3.0.29
 psutil==5.9.0
 psycopg2==2.9.3
@@ -67,7 +67,7 @@ tblib==1.7.0
 texttable==1.6.4
 threadpoolctl==3.1.0
 toolz==0.11.2
-tornado==6.1
+tornado==6.4.2
 tqdm==4.64.0
 traitlets==5.2.0
 typing-extensions==4.2.0
