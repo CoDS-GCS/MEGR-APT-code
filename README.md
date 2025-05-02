@@ -18,6 +18,7 @@ The system consist of multiple python scripts and other bash script to command t
 To setup the environment install `requirements.txt` then `torch_requirements.txt`. We prepared an example bash script for setting up the environment `setup_environment.sh`, Please recheck before using it. 
 
 The Stardog graph database instance should be set up, and the RDF Provenance Graphs should be loaded into it using `bash_src/load_to_stardog.sh`. The RDF Provenance Graphs are available at this [link](https://drive.google.com/drive/folders/1tCIcOoP8vgQUnq6oMN_aqMo6RgdCHazD?usp=drive_link). 
+Stardog could be replaced by any RDF graph engine that supports RDF* such as GraphDB, however, MEGR-APT has been tested with Stardog only, so some adjustments (e.g., in the subgraph extraction script) may be required.
 
 Stardog could be replaced by any RDF graph engine that supports RDF* such as GraphDB, however, MEGR-APT has been tested with Stardog only, so some adjustments (e.g., in the subgraph extraction script) may be required.
 
@@ -28,6 +29,7 @@ Stardog could be replaced by any RDF graph engine that supports RDF* such as Gra
 The first step in MEGR-APT is to construct provenance graphs in the RDF graph engine.  
 - Use `construct_pg_cadets.py` to query kernel audit logs from a structured database, Postgres, and construct a provenance graph in NetworkX format.
 - Use `construct_rdf_graph_cadets.py` to construct RDF-Based provenance graphs and store them in RDF graph engine, Stardog.
+The construction steps could be skipped if using the provided RDF Provenance Graphs. 
 
 The construction steps could be skipped if using the provided RDF Provenance Graphs. 
 
